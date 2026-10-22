@@ -1,0 +1,47 @@
+name: Cross-platform portable sync
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'Browserapp/automation/portable-sync*'
+      - 'Browserapp/automation/sync-*'
+      - 'Browserapp/automation/s3-sign.js'
+      - 'Browserapp/automation/website-state*'
+      - 'AndroidApp/app/src/main/assets/sync/*'
+      - 'AndroidApp/app/src/test/resources/website-state-vector.json'
+      - 'AndroidApp/app/src/test/resources/portable-sync-vector.txt'
+      - 'Browserapp/main.js'
+      - 'Browserapp/preload.js'
+      - 'Browserapp/ui/ui-cloud.js'
+      - 'Browserapp/index.html'
+      - '.github/workflows/portable-sync.yml'
+  pull_request:
+    paths:
+      - 'Browserapp/automation/portable-sync*'
+      - 'Browserapp/automation/sync-*'
+      - 'Browserapp/automation/s3-sign.js'
+      - 'Browserapp/automation/website-state*'
+      - 'AndroidApp/app/src/main/assets/sync/*'
+      - 'AndroidApp/app/src/test/resources/website-state-vector.json'
+      - '.github/workflows/portable-sync.yml'
+permissions:
+  contents: read
+jobs:
+  portable-sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check JavaScript syntax
+        run: |
+          node --check Browserapp/main.js
+          node --check Browserapp/preload.js
+          node --check Browserapp/ui/ui-cloud.js
+      - name: Verify encrypted exchange and network transports
+        run: |
+          node Browserapp/automation/portable-sync-selftest.js
+          node Browserapp/automation/sync-engine-selftest.js
+          node Browserapp/automation/website-state-selftest.js
+          node Browserapp/ui-module-load-selftest.js

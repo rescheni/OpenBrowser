@@ -1,4 +1,4 @@
-const { app, BrowserWindow, Menu, clipboard, dialog, globalShortcut, ipcMain, nativeImage, screen, session, shell, Tray } = require('./host-bridge');
+const { app, BrowserWindow, Menu, clipboard, dialog, globalShortcut, ipcMain, nativeImage, safeStorage, screen, session, shell, Tray } = require('./host-bridge');
 const path = require('path');
 const fs = require('fs');
 const fsp = require('fs/promises');
@@ -28,6 +28,9 @@ const { createCoalescedWriter } = require('./automation/coalesced-writer');
 const { deepEqual } = require('./automation/object-utils');
 const { startAutomation } = require('./automation');
 const cloudSync = require('./automation/cloud-sync');
+const portableSync = require('./automation/portable-sync');
+let portableLan = null;
+let portableAuto = null;
 const { validateDataRootIsolationSecure, ensureDataRootIsolationSecure, assertProfileId } = require('./automation/isolation');
 const { createCrashHandler, buildHelperProcessGoneReport } = require('./automation/crash-report');
 const { writeBrowserStartupDiagnostic } = require('./engine/diagnostics');
@@ -1683,6 +1686,37 @@ app.whenReady().then(async () => {
   engine = new BrowserEngine(app, { profileDataRoot: localSettings.profileDataRoot });
   liveSync = new LiveSyncController(engine, handleLiveSyncEvent);
   await engine.init(path.join(__dirname, 'bundled-extension'));
+  const { SyncController } = require('./automation/sync-controller');
+  const syncMerge = require('./automation/sync-merge');
+  const isOpen = id => engine.running.has(id) || engine.starting.has(id) || engine.stopping.has(id);
+  const websiteState = require('./automation/website-state');
+  const websiteStore = new websiteState.WebsiteStateStore(app, safeStorage);
+  engine.websiteStateStore = websiteStore;
+  engine.websiteSyncOptions = () => portableAuto?.document?.config || {};
+  portableAuto = await new SyncController({
+    file: path.join(app.getPath('userData'), 'portable-sync-settings.enc'), safeStorage,
+    readLocal: async config => websiteState.enrich(portableSync.fromDesktop([...engine.profiles.values()].filter(p => p.advanced?.cloudBackup && !isOpen(p.id)), config.includeCookies), websiteStore, config),
+    excluded: () => [...engine.profiles.values()].filter(p => !p.advanced?.cloudBackup || isOpen(p.id)).map(p => p.id),
+    applyLocal: async (profiles, before, config) => {
+      if (!profiles.length) return;
+      const bases = new Map(before.profiles.map(p => [p.id, syncMerge.digests(p)]));
+      for (const p of profiles) {
+        if (isOpen(p.id)) throw new Error('请先关闭要接收更新的环境');
+        const current = engine.profiles.get(p.id);
+        if (current) {
+          const common = (await websiteState.enrich(portableSync.fromDesktop([current], config.includeCookies), websiteStore, config)).profiles[0];
+          if (syncMerge.canonical(syncMerge.digests(common)) !== syncMerge.canonical(bases.get(p.id))) throw new Error('本机配置已变化，请重试');
+        } else if (bases.has(p.id)) throw new Error('本机配置已变化，请重试');
+      }
+      const body = { format: portableSync.FORMAT, version: profiles.some(p => p.siteData !== undefined || p.credentials !== undefined) ? 2 : 1, profiles };
+      const merged = portableSync.mergeIntoDesktop([...engine.profiles.values()], body, true, config.includeCookies, true);
+      const incomingIds = new Set(profiles.map(p => p.id));
+      merged.profiles.forEach(p => { if (incomingIds.has(p.id)) p.advanced = { ...p.advanced, cloudBackup: true }; });
+      await engine.syncProfiles(merged.profiles);
+      if (config.includeSiteData || config.includeCredentials) for (const p of profiles) await websiteStore.queueImport(p.id, p, config);
+    },
+    changed: () => emit({ type: 'portable-sync', profiles: [...engine.profiles.values()] }),
+  }).init();
   try {
     const startPage = await engine.ensureStartPage();
     startPage.setEngine?.(engine);
@@ -1692,6 +1726,7 @@ app.whenReady().then(async () => {
   }
   engine.on((value) => {
     emit(value);
+    if (value?.type === 'profile-closed') portableAuto?.kick();
     // Hub/ix style: when an opted-in profile closes, auto-push that env to cloud
     if (value?.type === 'profile-closed' && value.cloudBackup && value.profile?.id) {
       const cloud = localSettingsCache?.cloud || {};
@@ -1841,6 +1876,130 @@ app.whenReady().then(async () => {
     return { canceled: false, dir: result.filePaths[0] };
   });
   registerTrustedIpc('cloud:backup', async (_event, payload) => runCloudBackup(payload || {}));
+  registerTrustedIpc('portable:exchange', async (_event, payload = {}) => {
+    const action = String(payload.action || '');
+    if (action === 'stop-lan') { portableLan?.close(); portableLan = null; return { message: '局域网交换已关闭' }; }
+    const pass = String(payload.password || (action === 'start-lan' ? portableAuto?.document.config.password : '') || '');
+    if (pass.length < 12) throw new Error('同步密码至少 12 个字符');
+    const endpoint = {
+      getUrl: String(payload.getUrl || ''), putUrl: String(payload.putUrl || ''),
+      username: payload.mode === 'webdav' ? String(payload.username || '') : '', password: payload.mode === 'webdav' ? String(payload.remotePassword || '') : '',
+    };
+    if (['export-file', 'push', 'start-lan'].includes(action)) {
+      const profiles = [...engine.profiles.values()].filter(p => p.advanced?.cloudBackup);
+      if (!profiles.length) throw new Error('请先在要同步环境的偏好设置中开启「云备份」；此处仅导出这些环境');
+      if (profiles.some(p => engine.running.has(p.id) || engine.starting.has(p.id) || engine.stopping.has(p.id))) throw new Error('请先关闭参与同步的环境，确保 Cookie 快照已保存');
+      if (action === 'push') {
+        const choice = await dialog.showMessageBox({ type: 'question', buttons: ['取消', '上传快照'], defaultId: 0, cancelId: 0, message: '替换远端文件中的旧快照？', detail: '仅上传本次选中的环境，不合并旧快照。建议每台设备使用不同文件名。' });
+        if (choice.response !== 1) return { canceled: true };
+      }
+      const body = await websiteState.enrich(portableSync.fromDesktop(profiles, payload.includeCookies === true), websiteStore, payload);
+      if (action === 'start-lan') body.sync = { version: 1, space: String(payload.space || portableAuto?.document.config.space || 'default'), revision: require('crypto').randomUUID() };
+      if (body.sync && !/^[A-Za-z0-9_-]{1,64}$/.test(body.sync.space)) throw new Error('空间标识无效');
+      const data = await portableSync.seal(body, pass);
+      if (action === 'export-file') {
+        const choice = await dialog.showSaveDialog({ title: '导出电脑 / 手机加密交换文件', defaultPath: `openbrowser-${Date.now()}.obsync`, filters: [{ name: 'OpenBrowser portable exchange', extensions: ['obsync'] }] });
+        if (choice.canceled || !choice.filePath) return { canceled: true };
+        await fsp.writeFile(choice.filePath, data, { mode: 0o600 });
+      } else if (action === 'push') await portableSync.upload(endpoint, data, undefined, async previous => {
+        if ((await portableSync.open(previous, pass)).sync) throw new Error('这是自动同步文件，请使用立即双向同步，不要用手动快照覆盖');
+      });
+      else {
+        portableLan?.close(); portableLan = null;
+        portableLan = await portableSync.serveLocal(data);
+        if (payload.autoHost === true && portableAuto) await portableAuto.save({ ...portableAuto.document.config, enabled: true, provider: 'lan', space: body.sync.space,
+          getUrl: portableLan.url, putUrl: portableLan.url, password: pass, includeCookies: payload.includeCookies === true, includeSiteData: payload.includeSiteData === true, includeCredentials: payload.includeCredentials === true, acceptNew: payload.acceptNew === true });
+        return { message: '局域网交换已开启，10 分钟后自动关闭。手机粘贴此地址后可下载，或上传手机快照；电脑收到后仍需手动导入。', url: portableLan.url };
+      }
+      return { message: `已导出 ${profiles.length} 个环境。Cookie ${payload.includeCookies === true ? '已按已有快照包含' : '未包含'}。` };
+    }
+    let data;
+    if (action === 'import-file') {
+      const choice = await dialog.showOpenDialog({ title: '导入电脑 / 手机交换文件', properties: ['openFile'], filters: [{ name: 'OpenBrowser portable exchange', extensions: ['obsync'] }] });
+      if (choice.canceled || !choice.filePaths[0]) return { canceled: true };
+      const handle = await fsp.open(choice.filePaths[0], 'r');
+      try {
+        if ((await handle.stat()).size > portableSync.MAX_BYTES) throw new Error('交换文件超过 8 MB');
+        data = await handle.readFile();
+        if (data.length > portableSync.MAX_BYTES) throw new Error('交换文件超过 8 MB');
+      } finally { await handle.close(); }
+    } else if (action === 'pull') data = await portableSync.download(endpoint);
+    else if (action === 'receive-lan') {
+      data = portableLan?.received();
+      if (!data) throw new Error('尚未收到手机上传的快照，或局域网交换尚未开启');
+    } else throw new Error('未知的跨端交换操作');
+    const body = await portableSync.open(data, pass);
+    const duplicates = body.profiles.filter(p => engine.profiles.has(p.id)).length;
+    const cookieCount = body.profiles.reduce((n, p) => n + p.cookies.length, 0);
+    const choice = await dialog.showMessageBox({
+      type: 'question', buttons: ['取消', '确认导入'], defaultId: 0, cancelId: 0,
+      message: `导入 ${body.profiles.length} 个环境？`,
+      detail: `${duplicates} 个 ID 在本机已存在；${payload.replace === true ? '替换同 ID 配置' : '保留本地同 ID 环境'}。\n文件包含 ${cookieCount} 条 Cookie；本次${payload.includeCookies === true ? '允许导入，可能替换原 Cookie' : '不导入 Cookie'}。\n网站存储：${payload.includeSiteData === true ? '导入' : '不导入'}；密码库：${payload.includeCredentials === true ? '导入' : '不导入'}。\n不同内核的指纹表现及网站登录态不能保证相同，不传播环境删除。`,
+    });
+    if (choice.response !== 1) return { canceled: true };
+    if (payload.replace === true && body.profiles.some(p => engine.running.has(p.id) || engine.starting.has(p.id) || engine.stopping.has(p.id))) throw new Error('请先关闭要替换的环境');
+    const accepted = body.profiles.filter(p => payload.replace === true || !engine.profiles.has(p.id));
+    const result = portableSync.mergeIntoDesktop([...engine.profiles.values()], body, payload.replace === true, payload.includeCookies === true);
+    await engine.syncProfiles(result.profiles);
+    for (const p of accepted) if ((payload.includeSiteData && p.siteData !== undefined) || (payload.includeCredentials && p.credentials !== undefined)) await websiteStore.queueImport(p.id, p, {forceSiteData:true, includeSiteData:payload.includeSiteData && p.siteData !== undefined, includeCredentials:payload.includeCredentials && p.credentials !== undefined});
+    return { profiles: [...engine.profiles.values()], message: `新增 ${result.stats.added}，更新 ${result.stats.updated}，保留本地 ${result.stats.kept}。重新打开环境后生效。` };
+  });
+  registerTrustedIpc('portable:auto', async (_event, payload = {}) => {
+    if (!portableAuto) throw new Error('同步服务尚未初始化');
+    if (String(payload.action || '').startsWith('vault-')) {
+      const id = String(payload.id || '');
+      const profile = engine.profiles.get(id);
+      const list = async () => ({ profiles: [...engine.profiles.values()].map(p => ({id:p.id, name:p.name})), entries: profile ? ((await websiteStore.read(id)).credentials || []).map(c => ({origin:c.origin,username:c.username})) : [] });
+      if (payload.action === 'vault-list') return list();
+      if (!profile) throw new Error('请选择环境');
+      if (portableAuto.busy) throw new Error('请等待同步结束后编辑密码库');
+      if (payload.action === 'vault-copy') {
+        const c = ((await websiteStore.read(id)).credentials || []).find(c => c.origin === payload.origin && c.username === payload.username);
+        if (!c) throw new Error('密码库条目不存在');
+        clipboard.writeText(c.password);
+        const secret = c.password;
+        setTimeout(() => { if (clipboard.readText() === secret) clipboard.clear(); }, 30000).unref?.();
+      } else if (payload.action === 'vault-save' || payload.action === 'vault-delete' || payload.action === 'vault-import-platform') {
+        let item = {origin: String(payload.origin || ''), username:String(payload.username || ''), password:payload.password};
+        if (payload.action === 'vault-import-platform') {
+          if (!profile.platform?.password) throw new Error('此环境没有已保存的平台密码');
+          item = {origin:new URL(profile.platform.startUrl || profile.startUrl).origin, username:profile.platform.username || '', password:profile.platform.password};
+        }
+        websiteState.origin(item.origin);
+        await websiteStore.update(id, d => {
+          const old = d.credentials || [], match = c => c.origin === item.origin && c.username === item.username;
+          const previous = old.find(match);
+          const entries = old.filter(c => !match(c));
+          if (payload.action !== 'vault-delete') entries.push({...item, password:item.password || previous?.password || ''});
+          d.credentials = websiteState.validateCredentials(entries);
+        });
+        portableAuto.kick();
+      } else throw new Error('未知密码库操作');
+      return list();
+    }
+    if (payload.action === 'save') return portableAuto.save(payload.config || {});
+    if (payload.action === 'pause') return portableAuto.save({ enabled: false });
+    if (payload.action === 'run') return portableAuto.run();
+    if (payload.action === 'resolve') return portableAuto.resolve(payload.side);
+    if (payload.action === 'forget') return portableAuto.forget();
+    if (payload.action === 'choose-file') {
+      const choice = await dialog.showSaveDialog({ title: '选择自动同步共享文件（不要与手动快照混用）', defaultPath: 'openbrowser-sync-vault.obsync', filters: [{ name: 'OpenBrowser sync vault', extensions: ['obsync'] }] });
+      return { localFile: choice.canceled ? '' : choice.filePath };
+    }
+    if (payload.action === 'export-previous') {
+      if (portableAuto.busy) throw new Error('请等待当前同步结束');
+      const config = portableAuto.document.config;
+      if (config.provider !== 'local') throw new Error('仅本地文件提供上一份密文备份；远端版本请使用存储服务的版本历史');
+      const previous = await require('./automation/sync-provider').localRead(config.localFile + '.previous');
+      if (previous.status !== 200) throw new Error('尚无上一份本地备份');
+      const body = await portableSync.open(previous.data, config.password);
+      if (body.sync?.space !== config.space) throw new Error('备份与当前同步空间不匹配');
+      const choice = await dialog.showSaveDialog({ title: '导出本地上一份加密备份', defaultPath: `openbrowser-recovery-${Date.now()}.obsync`, filters: [{ name: 'OpenBrowser recovery', extensions: ['obsync'] }] });
+      if (!choice.canceled && choice.filePath) await fsp.writeFile(choice.filePath, previous.data, { mode: 0o600 });
+      return portableAuto.public();
+    }
+    return portableAuto.public();
+  });
   registerTrustedIpc('cloud:restore', async (_event, payload) => runCloudRestore(payload || {}));
   registerTrustedIpc('cloud:profile-push', async (_event, payload) => runCloudProfilePush(payload || {}));
   registerTrustedIpc('cloud:profile-pull', async (_event, payload) => runCloudProfilePull(payload || {}));
@@ -1886,7 +2045,16 @@ app.whenReady().then(async () => {
     });
     return { success: true, mode, ...applied };
   });
-  registerTrustedIpc('profiles:sync', (_event, profiles) => engine.syncProfiles(profiles));
+  registerTrustedIpc('profiles:sync', async (_event, profiles) => {
+    const stamp = () => JSON.stringify([...engine.profiles.values()].filter(p => p.advanced?.cloudBackup).map(p => ({
+      id: p.id, name: p.name, note: p.note, startUrl: p.startUrl, group: p.group_name,
+      proxy: p.proxy, language: p.language, userAgent: p.userAgent, privacy: p.privacy, cookies: p.cookies,
+    })));
+    const before = stamp();
+    const result = await engine.syncProfiles(profiles);
+    if (before !== stamp()) portableAuto?.kick();
+    return result;
+  });
   registerTrustedIpc('profiles:delete', async (_event, payload) => {
     const ids = sanitizeIds(payload?.ids || []);
     if (syncState.active && syncState.selected.some((id) => ids.includes(id))) endSync();
@@ -2428,6 +2596,8 @@ app.on('before-quit', (event) => {
   beginQuitCleanup();
 });
 app.on('will-quit', () => {
+  portableAuto?.close();
+  portableLan?.close(); portableLan = null;
   stopShortcutBridge();
   // before-quit owns the awaited shutdown chain. Do not invoke automation.stop()
   // a second time while local API/RPA/proxy resources are already being closed.

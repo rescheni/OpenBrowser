@@ -30,6 +30,7 @@ The app supports multiple UI languages, currently including English and Chinese.
 - [Screenshots](#screenshots)
 - [Key features](#key-features)
 - [Supported platforms](#supported-platforms)
+- [Android app](#android-app)
 - [Quick start](#quick-start)
 - [Packaging](#packaging)
 - [Self-tests](#self-tests)
@@ -71,6 +72,19 @@ The app supports multiple UI languages, currently including English and Chinese.
 | macOS | x86_64 | ✅ Supported |
 | macOS | arm64 | ✅ Supported |
 | Ubuntu | x86_64 | ✅ Supported |
+
+## Android app
+
+`AndroidApp/` is a standalone Android client (Kotlin + system WebView). Every profile gets its own
+WebView data directory, so cookies, cache, localStorage and IndexedDB stay isolated. It supports device
+presets, UA / locale / timezone / screen / WebGL overrides, canvas and audio noise, WebRTC policies,
+and HTTP / HTTPS / SOCKS5 proxies with exit-IP checks. Profiles can also be pinned to the launcher as
+home-screen shortcuts. The Android UI follows DroidDeck's dark card language, with light / dark / system
+themes, press-scale feedback, staggered list entrances and page transitions.
+
+> The Android build uses the system WebView instead of a bundled Chromium kernel, so fingerprint
+> fidelity and feature coverage are lower than the desktop app. See
+> [AndroidApp/README.md](./AndroidApp/README.md) for build steps and internals.
 
 ## Quick start
 

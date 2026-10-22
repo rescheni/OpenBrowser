@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>OpenBrowser 同步自检</title>
+<style>body{font:16px system-ui;max-width:680px;margin:32px auto;padding:0 18px}input,button{font:inherit;padding:12px;margin:6px 0}input{width:90%}button{cursor:pointer}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#eee;padding:16px}</style>
+<h1>网站存储同步自检</h1>
+<p>电脑和手机必须通过完全相同的局域网 URL 打开本页，包括协议、IP 和端口。这里只写入本页来源的测试数据。</p>
+<input id="value" aria-label="测试值" placeholder="例如：电脑写入 001" autocomplete="off">
+<div><button id="write">写入本机测试数据</button> <button id="read">读取本机数据</button> <button id="clear">清空测试记录</button></div>
+<pre id="output" aria-live="polite"></pre>
+<script>
+'use strict';
+const output=document.getElementById('output');
+function db(){return new Promise((resolve,reject)=>{const r=indexedDB.open('openbrowser-sync-smoke',1);r.onupgradeneeded=()=>{const s=r.result.createObjectStore('sessions',{keyPath:'id'});s.createIndex('byLabel','label',{unique:false})};r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(Error('数据库打开失败'))})}
+async function access(mode,operation){const database=await db();try{return await new Promise((resolve,reject)=>{const tx=database.transaction('sessions',mode);let value;const request=operation(tx.objectStore('sessions'));if(request)request.onsuccess=()=>{value=request.result};tx.oncomplete=()=>resolve(value);tx.onabort=tx.onerror=()=>reject(Error('事务失败'))})}finally{database.close()}}
+async function read(){const record=await access('readonly',s=>s.get(1));output.textContent=JSON.stringify({origin:location.origin,localStorage:localStorage.getItem('openbrowser-smoke'),indexedDB:record?{...record,bytes:Array.from(record.bytes),dateType:record.when instanceof Date,binaryType:record.bytes instanceof Uint8Array}:null},null,2)}
+async function run(action){try{await action()}catch(e){output.textContent='自检失败：'+e.message}}
+document.getElementById('write').onclick=()=>run(async()=>{const value=document.getElementById('value').value;await access('readwrite',s=>s.put({id:1,label:value,when:new Date(),bytes:new Uint8Array([1,2,255])}));localStorage.setItem('openbrowser-smoke',value);await read()});
+document.getElementById('read').onclick=()=>run(read);
+document.getElementById('clear').onclick=()=>run(async()=>{await access('readwrite',s=>s.clear());localStorage.removeItem('openbrowser-smoke');await read()});
+run(read);
+</script></html>

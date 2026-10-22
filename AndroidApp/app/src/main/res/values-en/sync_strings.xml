@@ -1,0 +1,45 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+  <string name="sync_title">Desktop and phone sync</string>
+  <string name="sync_description">Manually exchange encrypted fingerprint settings and proxies with the same password. Existing IDs stay local by default; deletions do not propagate. Fingerprint behavior differs across engines. Cookies are separately optional snapshots, excluding localStorage, IndexedDB and full login state.</string>
+  <string name="sync_password">Sync password (12+ characters; encrypted when saving automatic settings)</string>
+  <string name="sync_select_profiles">Choose profiles to export</string>
+  <string name="sync_include_cookies">Export / import Cookie snapshots (may include login credentials)</string>
+  <string name="sync_replace">Replace matching profile IDs (close their browser first)</string>
+  <string name="sync_export_file">Export encrypted file</string>
+  <string name="sync_import_file">Choose file and preview import</string>
+  <string name="sync_remote_description">Enter a full file URL in an existing directory. Manual snapshots use separate filenames per device; automatic sync uses the same new shared file. Presigned mode uses GET / PUT URLs; native S3 keys go below. LAN uses the temporary desktop URL. Manual exchanges do not save connections; Save automatic settings encrypts credentials locally.</string>
+  <string name="sync_get_url">Download URL / full WebDAV file URL</string>
+  <string name="sync_put_url">Upload URL (blank = download URL)</string>
+  <string name="sync_username">WebDAV username (ignored in other modes)</string>
+  <string name="sync_remote_password">WebDAV password (encrypted when saving automatic settings)</string>
+  <string name="sync_push">Upload selected profile snapshot</string>
+  <string name="sync_pull">Download and preview import</string>
+  <string name="sync_push_confirm">Upload selected profiles and replace the old snapshot at this file URL. Other profiles in the remote snapshot are not merged. Use a separate filename per device.</string>
+  <string name="sync_push_done">Uploaded. Another device can download from this address.</string>
+  <string name="sync_idle">Ready for manual exchange or automatic two-way sync below.</string>
+  <string name="sync_working">Working…</string>
+  <string name="sync_selected_count">%1$d profiles selected</string>
+  <string name="sync_preview">File contains %1$d profiles, %2$d matching local IDs and %3$d Cookies.</string>
+  <string name="sync_keep_local">Matching IDs retain local settings and Cookies.</string>
+  <string name="sync_cookie_import_on">Cookies apply on the next launch of the corresponding WebView profile and may replace matching Cookies. Sites may require signing in again.</string>
+  <string name="sync_cookie_import_off">Cookies will not be imported.</string>
+  <string name="sync_password_required">Enter a sync password of at least 12 characters</string>
+  <string name="sync_write_failed">Cannot write file</string>
+  <string name="sync_read_failed">Cannot read file</string>
+  <string name="sync_export_done">Encrypted file exported. Transfer it by USB, shared folder or your chosen file transfer tool.</string>
+  <string name="sync_decrypt_failed">Incorrect sync password or damaged exchange file</string>
+  <string name="sync_failed">Operation failed: %1$s</string>
+  <string name="sync_cookie_snapshot">Save Cookie snapshot for sync</string>
+  <string name="sync_cookie_snapshot_confirm">Save Cookies for known URLs in this profile for cross-device export. The snapshot may contain login credentials and is encrypted locally. Only known URLs and paths are covered; partitioned Cookies and other website storage are excluded.</string>
+  <string name="sync_cookie_snapshot_done">Cookie snapshot saved: %1$d entries</string>
+  <string name="sync_cookie_snapshot_unsupported">This WebView cannot read full Cookie attributes. Update WebView first.</string>
+  <string name="sync_cookie_apply_failed">Some Cookies could not be imported. Navigation was stopped. Reopen the profile to retry.</string>
+  <string-array name="sync_modes">
+    <item>WebDAV</item>
+    <item>Object storage presigned URLs</item>
+    <item>Direct LAN transfer</item>
+    <item>S3 / MinIO native signing</item>
+    <item>Local sync file</item>
+  </string-array>
+</resources>

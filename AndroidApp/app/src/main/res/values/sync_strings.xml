@@ -1,0 +1,45 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+  <string name="sync_title">电脑与手机同步</string>
+  <string name="sync_description">手动加密交换指纹配置和代理。两端使用同一密码；默认保留本地同 ID 环境，不传播删除。不同内核的指纹表现可能不同。Cookie 需单独勾选，仅交换已生成的快照，不含 localStorage、IndexedDB 或完整登录态。</string>
+  <string name="sync_password">同步密码（至少 12 字符；保存自动设置时本机加密）</string>
+  <string name="sync_select_profiles">选择要导出的环境</string>
+  <string name="sync_include_cookies">导出 / 导入 Cookie 快照（可包含登录凭据）</string>
+  <string name="sync_replace">替换同 ID 环境配置（请先关闭正在浏览的环境）</string>
+  <string name="sync_export_file">导出加密文件</string>
+  <string name="sync_import_file">选择文件并预览导入</string>
+  <string name="sync_remote_description">远端填写完整文件 URL，目录必须已存在。手动快照建议按设备分文件名；自动同步使用同一个新文件地址。预签名方式填写 GET / PUT URL，原生 S3 在下方填写密钥。局域网粘贴电脑临时地址。手动交换不保存连接，点击保存自动设置后凭据在本机加密保存。</string>
+  <string name="sync_get_url">下载 URL / WebDAV 完整文件地址</string>
+  <string name="sync_put_url">上传 URL（留空使用下载地址）</string>
+  <string name="sync_username">WebDAV 用户名（其他方式忽略）</string>
+  <string name="sync_remote_password">WebDAV 密码（保存自动设置时本机加密）</string>
+  <string name="sync_push">上传所选环境快照</string>
+  <string name="sync_pull">下载并预览导入</string>
+  <string name="sync_push_confirm">将上传所选环境，替换此文件地址上的旧快照。不会合并远端文件中的其他环境；请为不同设备设置不同文件名。</string>
+  <string name="sync_push_done">上传完成。另一台设备可从此地址下载。</string>
+  <string name="sync_idle">准备就绪，可手动交换文件或使用下方自动双向同步。</string>
+  <string name="sync_working">正在处理…</string>
+  <string name="sync_selected_count">已选 %1$d 个环境</string>
+  <string name="sync_preview">文件包含 %1$d 个环境，其中 %2$d 个 ID 在本机已存在，Cookie 共 %3$d 条。</string>
+  <string name="sync_keep_local">同 ID 环境保留本地配置及 Cookie。</string>
+  <string name="sync_cookie_import_on">导入 Cookie 后将在下次打开对应 WebView 环境时应用，可能覆盖同名 Cookie；网站可能要求重新登录。</string>
+  <string name="sync_cookie_import_off">此次不导入 Cookie。</string>
+  <string name="sync_password_required">请输入至少 12 字符的同步密码</string>
+  <string name="sync_write_failed">无法写入文件</string>
+  <string name="sync_read_failed">无法读取文件</string>
+  <string name="sync_export_done">加密文件已导出。可通过 USB、共享文件夹或你选择的文件传输工具发送给另一台设备。</string>
+  <string name="sync_decrypt_failed">同步密码错误或交换文件已损坏</string>
+  <string name="sync_failed">操作失败：%1$s</string>
+  <string name="sync_cookie_snapshot">保存 Cookie 同步快照</string>
+  <string name="sync_cookie_snapshot_confirm">保存当前环境已访问网址的 Cookie 快照，供设置中的跨端同步导出使用。快照可能包含登录凭据，会在本机加密保存。只覆盖已知网址和路径，不含分区 Cookie 或其他网站存储。</string>
+  <string name="sync_cookie_snapshot_done">Cookie 快照已保存：%1$d 条</string>
+  <string name="sync_cookie_snapshot_unsupported">当前 WebView 不支持完整 Cookie 属性读取，请升级 WebView。</string>
+  <string name="sync_cookie_apply_failed">Cookie 导入未完全成功，已停止打开网页。请重新打开环境重试。</string>
+  <string-array name="sync_modes">
+    <item>WebDAV</item>
+    <item>对象存储预签名 URL</item>
+    <item>局域网直连</item>
+    <item>S3 / MinIO 原生签名</item>
+    <item>本地同步文件</item>
+  </string-array>
+</resources>

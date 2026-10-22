@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <item
+        android:id="@+id/action_new_tab"
+        android:title="@string/tab_new"
+        app:showAsAction="never" />
+
+    <item
+        android:id="@+id/action_history"
+        android:title="@string/browser_history"
+        app:showAsAction="never" />
+
+    <item
+        android:id="@+id/action_bookmarks"
+        android:title="@string/browser_bookmarks"
+        app:showAsAction="never" />
+
+    <item
+        android:id="@+id/action_bookmark"
+        android:title="@string/browser_bookmark_add"
+        app:showAsAction="never" />
+
+    <item
+        android:id="@+id/action_share"
+        android:title="@string/browser_share"
+        app:showAsAction="never" />
+
+    <item
+        android:id="@+id/action_external"
+        android:title="@string/browser_open_external"
+        app:showAsAction="never" />
+
+    <item
+        android:id="@+id/action_desktop"
+        android:checkable="true"
+        android:title="@string/browser_desktop_mode"
+        app:showAsAction="never" />
+
+    <item
+        android:id="@+id/action_find"
+        android:title="@string/browser_find"
+        app:showAsAction="never" />
+
+    <item
+        android:id="@+id/action_downloads"
+        android:title="@string/browser_downloads"
+        app:showAsAction="never" />
+
+    <item
+        android:id="@+id/action_forward"
+        android:icon="@drawable/ic_arrow_forward"
+        android:title="@string/browser_forward"
+        app:showAsAction="never" />
+
+    <item
+        android:id="@+id/action_reload"
+        android:icon="@drawable/ic_refresh"
+        android:title="@string/browser_reload"
+        app:showAsAction="never" />
+
+    <item
+        android:id="@+id/action_home"
+        android:icon="@drawable/ic_home"
+        android:title="@string/browser_home"
+        app:showAsAction="never" />
+
+    <item
+        android:id="@+id/action_check"
+        android:title="@string/check_page_title"
+        app:showAsAction="never" />
+
+    <item
+        android:id="@+id/action_info"
+        android:title="@string/browser_menu_info"
+        app:showAsAction="never" />
+
+    <item
+        android:id="@+id/action_cookie_snapshot"
+        android:title="@string/sync_cookie_snapshot"
+        app:showAsAction="never" />
+
+    <item
+        android:id="@+id/action_clear"
+        android:title="@string/browser_menu_clear"
+        app:showAsAction="never" />
+
+    <item
+        android:id="@+id/action_close"
+        android:title="@string/browser_close"
+        app:showAsAction="never" />
+<item android:id="@+id/action_vault_fill" android:title="@string/sync_vault_fill" app:showAsAction="never" />
+</menu>

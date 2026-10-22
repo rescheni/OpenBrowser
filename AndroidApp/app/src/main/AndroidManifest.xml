@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="com.android.launcher.permission.INSTALL_SHORTCUT" />
+
+    <application
+        android:name=".OpenBrowserApp"
+        android:allowBackup="false"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="false"
+        android:hardwareAccelerated="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.OpenBrowser"
+        android:usesCleartextTraffic="true">
+
+        <activity
+            android:name=".ui.MainActivity"
+            android:exported="true"
+            android:launchMode="singleTop">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <activity
+            android:name=".ui.ProfileEditActivity"
+            android:exported="false"
+            android:windowSoftInputMode="adjustResize" />
+
+        <!-- 桌面快捷方式中转页：无界面，收到环境 ID 后转交 BrowserActivity -->
+        <activity
+            android:name=".ui.ShortcutLauncherActivity"
+            android:excludeFromRecents="true"
+            android:exported="true"
+            android:noHistory="true"
+            android:theme="@android:style/Theme.NoDisplay" />
+
+        <activity
+            android:name=".ui.SettingsActivity"
+            android:exported="false" />
+
+        <activity android:name=".ui.SyncActivity" android:exported="false" />
+
+        <!-- 每个环境在独立进程中运行，配合 WebView.setDataDirectorySuffix 实现 Cookie/缓存/存储隔离 -->
+        <activity
+            android:name=".ui.BrowserActivity"
+            android:configChanges="orientation|screenSize|keyboardHidden|smallestScreenSize|screenLayout|uiMode"
+            android:exported="false"
+            android:launchMode="singleTask"
+            android:process=":browser"
+            android:windowSoftInputMode="adjustResize" />
+
+        <!-- Firefox 内核（GeckoView）环境：单独进程，避免与 WebView 的运行时互相影响 -->
+        <activity
+            android:name=".ui.GeckoBrowserActivity"
+            android:configChanges="orientation|screenSize|keyboardHidden|smallestScreenSize|screenLayout|uiMode"
+            android:exported="false"
+            android:launchMode="singleTask"
+            android:process=":gecko"
+            android:windowSoftInputMode="adjustResize" />
+
+        <activity
+            android:name=".ui.GeckoCleanupActivity"
+            android:excludeFromRecents="true"
+            android:exported="false"
+            android:noHistory="true"
+            android:process=":gecko"
+            android:theme="@android:style/Theme.NoDisplay" />
+
+        <receiver
+            android:name=".sync.SyncKickReceiver"
+            android:exported="false" />
+
+        <receiver
+            android:name=".ui.RelaunchReceiver"
+            android:exported="false" />
+
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
+    </application>
+
+</manifest>

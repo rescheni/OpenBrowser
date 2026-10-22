@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 深色调色板：参考 DroidDeck 的近黑分层 + 电光蓝 -->
+    <color name="deck_bg">#06080D</color>
+    <color name="deck_bg_glow">#12203A</color>
+    <color name="deck_surface">#0E131C</color>
+    <color name="deck_surface_alt">#151C2A</color>
+    <color name="deck_line">#202A3A</color>
+    <color name="deck_line_strong">#2C3A4F</color>
+    <color name="deck_text">#F2F5FA</color>
+    <color name="deck_text_dim">#8D9AAF</color>
+    <color name="deck_accent">#2E86FF</color>
+    <color name="deck_accent_2">#1A9FFF</color>
+    <color name="deck_on_accent">#03111F</color>
+    <color name="deck_good">#4CD37F</color>
+    <color name="deck_danger">#FF8A80</color>
+    <color name="deck_accent_soft">#262E86FF</color>
+    <color name="deck_accent_soft_2">#142E86FF</color>
+</resources>

@@ -311,6 +311,8 @@ function normalizeProfileSettings(profile) {
     proxyId,
     userAgent: String(value.userAgent || ''),
     cookies: String(value.cookies || ''),
+    cookieSyncManaged: value.cookieSyncManaged === true,
+    cookieSyncPending: value.cookieSyncPending === true,
     note: String(value.note || ''),
     tag: String(value.tag || ''),
     groupId: value.groupId == null || value.groupId === undefined ? UNGROUPED_ID : String(value.groupId || ''),

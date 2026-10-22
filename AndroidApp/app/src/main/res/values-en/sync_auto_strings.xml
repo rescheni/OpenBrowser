@@ -1,0 +1,47 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+  <string name="sync_profile_busy">This profile is receiving an update. Try opening it shortly.</string>
+  <string name="sync_auto_use_buttons">Use Save / Sync now below for native S3 signing or local files.</string>
+  <string name="sync_auto_description">Automatic two-way sync uses the same shared file, space ID and password on both devices. Changes merge when only one side changed; concurrent edits become conflicts. Profile deletions do not propagate. Cookies require separate opt-in above; selected WebView profiles update known-site snapshots when backgrounded. Android jobs run at intervals of at least 15 minutes and may be delayed by battery or network constraints.</string>
+  <string name="sync_auto_enabled">Enable automatic two-way sync and encrypt saved credentials</string>
+  <string name="sync_auto_accept_new">Automatically receive new profiles and include them in later sync</string>
+  <string name="sync_auto_wifi">Sync on unmetered networks only</string>
+  <string name="sync_auto_space">Space ID (same on both devices; letters, numbers, _ or -)</string>
+  <string name="sync_auto_interval">Interval in minutes (15 minimum)</string>
+  <string name="sync_s3_region">S3 Region (e.g. us-east-1 or auto)</string>
+  <string name="sync_s3_access">S3 Access Key</string>
+  <string name="sync_s3_secret">S3 Secret Key (encrypted locally)</string>
+  <string name="sync_s3_token">S3 Session Token (optional)</string>
+  <string name="sync_auto_choose_file">Choose existing local sync file</string>
+  <string name="sync_auto_create_file">Create local sync file</string>
+  <string name="sync_auto_save">Save automatic sync settings</string>
+  <string name="sync_auto_run">Sync both ways now</string>
+  <string name="sync_auto_pause">Pause automatic sync</string>
+  <string name="sync_auto_refresh">Refresh settings and sync history</string>
+  <string name="sync_auto_local">Resolve conflicts using this device</string>
+  <string name="sync_auto_remote">Resolve conflicts using remote version</string>
+  <string name="sync_auto_forget">Forget this connection and sync history</string>
+  <string name="sync_auto_forget_confirm">Remove saved credentials, baselines and history from this device? Browser profiles and the remote file remain. Pause sync and wait for the current task first.</string>
+  <string name="sync_auto_file_permission">This provider did not grant persistent read/write access. Choose a supported local file provider.</string>
+  <string name="sync_auto_active">Automatic sync enabled. Open browser profiles defer incoming changes.</string>
+  <string name="sync_auto_paused">Automatic sync paused.</string>
+  <string name="sync_auto_previous">Export previous local encrypted backup</string>
+  <string name="sync_include_site_data">Sync website localStorage / IndexedDB, including manual exchange (may contain sign-in tokens)</string>
+  <string name="sync_include_credentials">Sync OpenBrowser vault, including manual exchange (excludes system Google Password Manager)</string>
+  <string name="sync_vault_title">OpenBrowser password vault</string>
+  <string name="sync_vault_add">Add account</string>
+  <string name="sync_vault_origin">Website origin, e.g. https://example.com</string>
+  <string name="sync_vault_username">Username</string>
+  <string name="sync_vault_password">Password (leave blank to keep existing)</string>
+  <string name="sync_vault_copy">Copy password (clear after 30 seconds)</string>
+  <string name="sync_vault_edit">Edit password</string>
+  <string name="sync_vault_delete">Delete account</string>
+  <string name="sync_vault_delete_confirm">Delete this account? With vault sync enabled, deletion participates in the next merge.</string>
+  <string name="sync_vault_copied">Password copied; clipboard clears after 30 seconds</string>
+  <string name="sync_vault_failed">Vault action failed. Check the input and close this environment first.</string>
+  <string name="sync_vault_fill">Choose an account to fill this site (no automatic submission)</string>
+  <string name="sync_vault_empty">No account for this site. Add one in sync settings first.</string>
+  <string name="sync_website_preview">Import website data: %1$s; import password vault: %2$s</string>
+  <string name="sync_data_on">enabled</string>
+  <string name="sync_data_off">disabled</string>
+</resources>

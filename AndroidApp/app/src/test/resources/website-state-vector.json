@@ -1,0 +1,129 @@
+{
+  "body": {
+    "format": "openbrowser-portable",
+    "version": 2,
+    "createdAt": 1,
+    "source": "android",
+    "profiles": [
+      {
+        "id": "portable-test-123",
+        "name": "测试环境",
+        "group": "",
+        "note": "",
+        "startUrl": "https://example.com/",
+        "engine": "webview",
+        "userAgent": "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 Chrome/120.0.0.0 Mobile Safari/537.36",
+        "platform": "Linux armv8l",
+        "locale": "zh-CN",
+        "timezone": "Asia/Shanghai",
+        "screenWidth": 412,
+        "screenHeight": 915,
+        "devicePixelRatio": 2.625,
+        "hardwareConcurrency": 8,
+        "deviceMemory": 4,
+        "touchPoints": 5,
+        "mobile": true,
+        "webglVendor": "Qualcomm",
+        "webglRenderer": "Adreno",
+        "canvasNoise": true,
+        "audioNoise": false,
+        "webRtcMode": "blocked",
+        "webRtcIp": "",
+        "deviceModel": "Pixel 8",
+        "updatedAt": 1,
+        "proxy": {
+          "type": "direct",
+          "host": "",
+          "port": 0,
+          "username": "",
+          "password": ""
+        },
+        "cookies": [],
+        "siteData": [
+          {
+            "origin": "https://example.com",
+            "localStorage": [
+              [
+                "session",
+                "中文-token"
+              ]
+            ],
+            "databases": [
+              {
+                "name": "app",
+                "version": 3,
+                "stores": [
+                  {
+                    "name": "sessions",
+                    "keyPath": "id",
+                    "autoIncrement": false,
+                    "indexes": [
+                      {
+                        "name": "byUser",
+                        "keyPath": "user",
+                        "unique": true,
+                        "multiEntry": false
+                      }
+                    ],
+                    "rows": [
+                      {
+                        "key": [
+                          "number",
+                          1
+                        ],
+                        "value": [
+                          "object",
+                          [
+                            [
+                              "bytes",
+                              [
+                                "view",
+                                "Uint8Array",
+                                [
+                                  1,
+                                  2,
+                                  3
+                                ]
+                              ]
+                            ],
+                            [
+                              "id",
+                              [
+                                "number",
+                                1
+                              ]
+                            ],
+                            [
+                              "user",
+                              [
+                                "primitive",
+                                "alice"
+                              ]
+                            ]
+                          ]
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "credentials": [
+          {
+            "origin": "https://example.com",
+            "username": "alice",
+            "password": "仅用于测试-password"
+          }
+        ]
+      }
+    ]
+  },
+  "digests": {
+    "config": "44018baf38f2c23af36b4a5df43a93b2bb8e23b2c9b3aad4cef83f55bc1e5699",
+    "cookies": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "siteData": "c0891c6f5bed5fd5254af2de1b6b39bceabfb26ab21c620bba36b2d96bccd024",
+    "credentials": "82528b742994eb479821d192b829e76a7d25de4b56bc4448e042cc39380a11c8"
+  }
+}

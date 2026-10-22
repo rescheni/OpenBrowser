@@ -1,0 +1,47 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+  <string name="sync_profile_busy">此环境正在接收同步，请稍后再打开。</string>
+  <string name="sync_auto_use_buttons">S3 原生签名和本地文件请使用下方自动同步的保存 / 立即同步按钮。</string>
+  <string name="sync_auto_description">自动双向同步：两端使用相同共享文件地址、空间标识和密码。单端修改自动合并，同时修改保留冲突。不传播环境删除。网站存储和密码库有独立开关，也控制手动文件和传输；Cookie 需在上方单独勾选；启用后，所选 WebView 环境切到后台时更新已知网站快照。系统后台任务最短 15 分钟，受省电和网络限制，不保证即时执行。</string>
+  <string name="sync_auto_enabled">启用自动双向同步并加密保存连接凭据</string>
+  <string name="sync_auto_accept_new">自动接收空间中的新环境并加入后续同步</string>
+  <string name="sync_auto_wifi">仅在非计费网络同步</string>
+  <string name="sync_auto_space">空间标识（两端一致，字母 / 数字 / _ / -）</string>
+  <string name="sync_auto_interval">间隔分钟数（至少 15）</string>
+  <string name="sync_s3_region">S3 Region（例如 us-east-1 或 auto）</string>
+  <string name="sync_s3_access">S3 Access Key</string>
+  <string name="sync_s3_secret">S3 Secret Key（加密保存）</string>
+  <string name="sync_s3_token">S3 Session Token（可选）</string>
+  <string name="sync_auto_choose_file">选择已有本地同步文件</string>
+  <string name="sync_auto_create_file">创建本地同步文件</string>
+  <string name="sync_auto_save">保存自动同步设置</string>
+  <string name="sync_auto_run">立即双向同步</string>
+  <string name="sync_auto_pause">暂停自动同步</string>
+  <string name="sync_auto_refresh">刷新设置和同步记录</string>
+  <string name="sync_auto_local">冲突项采用本机版本</string>
+  <string name="sync_auto_remote">冲突项采用远端版本</string>
+  <string name="sync_auto_forget">清除本机连接和同步记录</string>
+  <string name="sync_auto_forget_confirm">清除本机保存的同步凭据、基线和记录？不会删除浏览器环境或远端文件。请先暂停同步并等待当前任务结束。</string>
+  <string name="sync_auto_file_permission">文件提供商未授予持久读写权限，请换用支持的本地文件提供商。</string>
+  <string name="sync_auto_active">自动同步已启用。运行中的环境暂缓接收更新。</string>
+  <string name="sync_auto_paused">自动同步已暂停。</string>
+  <string name="sync_auto_previous">导出本地上一份密文备份</string>
+  <string name="sync_include_site_data">同步网站 localStorage / IndexedDB（可能包含登录令牌）</string>
+  <string name="sync_include_credentials">同步 OpenBrowser 密码库（不含系统 Google 密码库）</string>
+  <string name="sync_vault_title">OpenBrowser 密码库</string>
+  <string name="sync_vault_add">添加账号</string>
+  <string name="sync_vault_origin">网站来源，例如 https://example.com</string>
+  <string name="sync_vault_username">用户名</string>
+  <string name="sync_vault_password">密码（已有条目留空保留）</string>
+  <string name="sync_vault_copy">复制密码（30 秒后清除）</string>
+  <string name="sync_vault_edit">修改密码</string>
+  <string name="sync_vault_delete">删除账号</string>
+  <string name="sync_vault_delete_confirm">删除此账号？开启密码库同步后，删除会参与下一次合并。</string>
+  <string name="sync_vault_copied">已复制密码，30 秒后清除剪贴板</string>
+  <string name="sync_vault_failed">密码库操作失败，请检查输入并先关闭该环境。</string>
+  <string name="sync_vault_fill">选择账号填入当前网站（不会自动提交）</string>
+  <string name="sync_vault_empty">密码库中没有此网站的账号，请先在同步设置中添加。</string>
+  <string name="sync_website_preview">网站存储导入：%1$s；密码库导入：%2$s</string>
+  <string name="sync_data_on">导入</string>
+  <string name="sync_data_off">不导入</string>
+</resources>

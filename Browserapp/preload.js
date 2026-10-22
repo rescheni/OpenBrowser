@@ -85,6 +85,8 @@ contextBridge.exposeInMainWorld('ops', Object.freeze({
   proxyCheck: (payload) => ipcRenderer.invoke('proxy:check', payload),
   proxyCheckMany: (payload) => ipcRenderer.invoke('proxy:check-many', payload || {}),
   cloudGetConfig: () => ipcRenderer.invoke('cloud:get-config'),
+  portableExchange: (payload) => ipcRenderer.invoke('portable:exchange', payload || {}),
+  portableAuto: (payload) => ipcRenderer.invoke('portable:auto', payload || {}),
   cloudSetConfig: (cloud) => ipcRenderer.invoke('cloud:set-config', cloud),
   cloudChooseDir: () => ipcRenderer.invoke('cloud:choose-dir'),
   cloudBackup: (payload) => ipcRenderer.invoke('cloud:backup', payload || {}),

@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>__PROFILE_NAME__</title>
+<style>
+  :root{
+    --bg:#f4f6fb; --card:#ffffff; --line:#e3e7f0; --text:#10131a; --muted:#687089;
+    --accent:#2f6df6; --chip:#eef2fd; --accent-soft:#e7eeff;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#0b0e14; --card:#121722; --line:#222a3a; --text:#e8edf7; --muted:#8b95ab;
+      --accent:#5b8cff; --chip:#182034; --accent-soft:#1a2540;
+    }
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--text)}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC","Noto Sans SC",sans-serif;
+    padding:22px 16px 40px;line-height:1.5;
+  }
+  @keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  .brand{display:flex;align-items:center;gap:9px;margin-bottom:16px}
+  .logo{
+    width:26px;height:26px;border-radius:9px;background:var(--accent);color:#fff;
+    display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;
+  }
+  .brand span{font-size:12px;letter-spacing:.14em;font-weight:700;color:var(--muted);text-transform:uppercase}
+  h1{font-size:26px;margin:0 0 4px;letter-spacing:-.02em;word-break:break-word}
+  .sub{margin:0 0 18px;color:var(--muted);font-size:13px}
+
+  form.search{
+    display:flex;align-items:center;gap:8px;background:var(--card);
+    border:1px solid var(--line);border-radius:16px;padding:6px 6px 6px 14px;
+  }
+  form.search input{
+    flex:1;min-width:0;border:0;outline:0;background:transparent;color:var(--text);
+    font-size:14px;padding:8px 0;
+  }
+  form.search input::placeholder{color:var(--muted)}
+  form.search button{
+    border:0;border-radius:12px;background:var(--accent);color:#fff;font-size:13px;font-weight:700;
+    padding:9px 14px;cursor:pointer;
+  }
+
+  section{margin-top:22px}
+  .sectionHead{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:10px;padding:0 2px}
+  h2{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0;font-weight:700}
+  .count{font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
+
+  .tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+  .tile{
+    background:var(--card);border:1px solid var(--line);border-radius:16px;
+    padding:12px 6px 10px;text-align:center;cursor:pointer;display:block;
+  }
+  .tile .avatar{
+    width:38px;height:38px;margin:0 auto 7px;border-radius:12px;background:var(--accent-soft);
+    color:var(--accent);display:flex;align-items:center;justify-content:center;
+    font-size:16px;font-weight:800;text-transform:uppercase;
+  }
+  .tile .name{font-size:11px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+  .list{background:var(--card);border:1px solid var(--line);border-radius:16px;overflow:hidden}
+  .row{
+    display:flex;align-items:center;gap:11px;padding:11px 14px;
+    border-top:1px solid var(--line);cursor:pointer;
+  }
+  .row:first-child{border-top:0}
+  .row .dot{
+    flex:0 0 30px;height:30px;border-radius:10px;background:var(--accent-soft);color:var(--accent);
+    display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;
+  }
+  .row .txt{flex:1;min-width:0}
+  .row .t{font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .row .u{font-size:11px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .row .go{flex:0 0 auto;color:var(--muted);font-size:16px}
+
+  .empty{color:var(--muted);font-size:12.5px;padding:14px 2px}
+  .links{margin-top:26px;display:flex;gap:10px;flex-wrap:wrap}
+  .links a{
+    display:inline-block;background:var(--chip);color:var(--accent);border-radius:999px;
+    padding:6px 12px;font-size:12px;font-weight:600;text-decoration:none;
+  }
+  footer{margin-top:26px;color:var(--muted);font-size:11px;text-align:center;line-height:1.7}
+</style>
+</head>
+<body>
+  <div class="brand"><div class="logo">O</div><span>OpenBrowser</span></div>
+  <h1>__PROFILE_NAME__</h1>
+  <p class="sub">独立环境 · Cookie 与缓存仅保存在本机</p>
+
+  <form class="search" onsubmit="return doSearch()">
+    <input id="q" type="search" placeholder="搜索或输入网址" autocomplete="off" spellcheck="false">
+    <button type="submit">搜索</button>
+  </form>
+
+  <section>
+    <div class="sectionHead"><h2>常用网站</h2><span class="count" id="bmCount"></span></div>
+    <div id="bookmarks"></div>
+  </section>
+
+  <section>
+    <div class="sectionHead"><h2>最近访问</h2><span class="count" id="hisCount"></span></div>
+    <div id="history"></div>
+  </section>
+
+  <div class="links">
+    <a href="javascript:go('openbrowser://check')">环境检测</a>
+    <a href="javascript:go('https://www.bing.com')">Bing</a>
+    <a href="javascript:go('https://duck.ai')">Duck.ai</a>
+  </div>
+
+  <footer>此页面仅在本机生成，不会上传任何浏览数据</footer>
+
+<script>
+  var BOOKMARKS = __BOOKMARKS_JSON__;
+  var HISTORY = __HISTORY_JSON__;
+
+  function go(url) { location.href = url; }
+  function open(url) { location.href = 'openbrowser://open?url=' + encodeURIComponent(url); }
+  function host(url) {
+    try { return new URL(url).hostname.replace(/^www\./, ''); }
+    catch (e) { return url; }
+  }
+  function initial(text) {
+    var t = (text || '').trim();
+    return t ? t.charAt(0).toUpperCase() : '·';
+  }
+  function doSearch() {
+    var input = document.getElementById('q');
+    var q = (input.value || '').trim();
+    if (!q) return false;
+    if (/^https?:\/\//i.test(q)) { open(q); return false; }
+    if (q.indexOf('.') > 0 && q.indexOf(' ') < 0) { open('https://' + q); return false; }
+    location.href = 'openbrowser://search?q=' + encodeURIComponent(q);
+    return false;
+  }
+  function renderBookmarks() {
+    var host = document.getElementById('bookmarks');
+    document.getElementById('bmCount').textContent = BOOKMARKS.length ? BOOKMARKS.length + ' 个' : '';
+    if (!BOOKMARKS.length) {
+      host.innerHTML = '<div class="empty">收藏网页后，会出现在这里。</div>';
+      return;
+    }
+    var grid = document.createElement('div');
+    grid.className = 'tiles';
+    BOOKMARKS.forEach(function (item, i) {
+      var el = document.createElement('a');
+      el.className = 'tile';
+      el.href = 'javascript:void(0)';
+      el.style.animation = 'rise .26s ease both';
+      el.style.animationDelay = (i * 26) + 'ms';
+      el.onclick = function () { open(item.url); };
+      el.innerHTML =
+        '<div class="avatar">' + initial(item.title) + '</div>' +
+        '<div class="name"></div>';
+      el.querySelector('.name').textContent = item.title || host(item.url);
+      grid.appendChild(el);
+    });
+    host.innerHTML = '';
+    host.appendChild(grid);
+  }
+  function renderHistory() {
+    var host = document.getElementById('history');
+    document.getElementById('hisCount').textContent = HISTORY.length ? HISTORY.length + ' 条' : '';
+    if (!HISTORY.length) {
+      host.innerHTML = '<div class="empty">还没有浏览记录，输入网址开始吧。</div>';
+      return;
+    }
+    var list = document.createElement('div');
+    list.className = 'list';
+    HISTORY.forEach(function (item, i) {
+      var el = document.createElement('div');
+      el.className = 'row';
+      el.style.animation = 'rise .24s ease both';
+      el.style.animationDelay = (i * 22) + 'ms';
+      el.onclick = function () { open(item.url); };
+      el.innerHTML =
+        '<div class="dot"></div>' +
+        '<div class="txt"><div class="t"></div><div class="u"></div></div>' +
+        '<div class="go">›</div>';
+      el.querySelector('.dot').textContent = initial(item.title);
+      el.querySelector('.t').textContent = item.title || item.url;
+      el.querySelector('.u').textContent = host(item.url);
+      list.appendChild(el);
+    });
+    host.innerHTML = '';
+    host.appendChild(list);
+  }
+  renderBookmarks();
+  renderHistory();
+</script>
+</body>
+</html>

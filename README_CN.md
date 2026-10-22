@@ -30,6 +30,7 @@ OpenBrowser 是一款本地桌面指纹浏览器，用于管理多套互相隔�
 - [界面预览](#界面预览)
 - [核心功能](#核心功能)
 - [支持平台](#支持平台)
+- [安卓端](#安卓端)
 - [快速开始](#快速开始)
 - [打包](#打包)
 - [自测](#自测)
@@ -71,6 +72,16 @@ OpenBrowser 是一款本地桌面指纹浏览器，用于管理多套互相隔�
 | macOS | x86_64 | ✅ 支持 |
 | macOS | arm64 | ✅ 支持 |
 | Ubuntu | x86_64 | ✅ 支持 |
+
+## 安卓端
+
+`AndroidApp/` 是独立的安卓客户端（Kotlin + 系统 WebView）：每套环境使用独立的 WebView 数据目录，
+Cookie / 缓存 / localStorage / IndexedDB 互不干扰；支持设备预设、UA / 语言 / 时区 / 屏幕 / WebGL、
+Canvas / Audio 噪声、WebRTC 策略，以及 HTTP / HTTPS / SOCKS5 代理与出口检测；环境还可以固定为桌面快捷方式。
+界面参考 DroidDeck 的深色卡片设计，提供浅色 / 深色 / 跟随系统主题、按压缩放、列表错峰入场与页面过渡动画。
+
+> 安卓端使用系统 WebView，不含独立 Chromium 内核，因此指纹强度与功能范围弱于桌面端。
+> 构建方式与实现说明见 [AndroidApp/README.md](./AndroidApp/README.md)。
 
 ## 快速开始
 

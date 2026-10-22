@@ -62,6 +62,8 @@ function sanitizeProfile(value) {
     height,
     userAgent: String(value.userAgent || "").replace(/[\r\n]/g, " ").slice(0, 1000),
     cookies: String(value.cookies || "").slice(0, 500000),
+    cookieSyncManaged: value.cookieSyncManaged === true,
+    cookieSyncPending: value.cookieSyncPending === true,
     note: String(value.note || "").slice(0, 2000),
     exitIp: String(value.exitIp || "").slice(0, 80),
     exitCountryCode: String(value.exitCountryCode || "").slice(0, 4),

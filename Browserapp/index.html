@@ -1150,6 +1150,51 @@
   </div>
   <p class="storage-warning" id="cloud-sync-status">尚未同步。单环境是否同步请在「编辑环境 → 偏好设置 → 云备份」中开关，主列表不放同步开关。</p>
 </article>
+<article class="storage-settings-card" id="portable-sync-card">
+  <div class="storage-settings-head"><div><h3>电脑与手机同步</h3><p>手动加密交换指纹配置、代理和可选 Cookie 快照。仅导出已在环境偏好中开启「云备份」的环境，请先关闭这些环境。不会传播删除；不同内核的指纹表现与登录态不能保证一致。</p></div></div>
+  <label>同步密码（至少 12 字符；保存自动设置时本机加密）<input id="portable-password" type="password" autocomplete="off"></label>
+  <label class="check-row"><input id="portable-cookies" type="checkbox">导出 / 导入 Cookie 快照（可能包含登录凭据；不含完整网站存储）</label>
+  <label class="check-row"><input id="portable-replace" type="checkbox">导入时替换同 ID 配置（默认保留本地环境，请先关闭对应浏览器）</label>
+  <div class="storage-actions"><button class="outline" type="button" data-portable-action="export-file">导出加密文件</button><button class="outline" type="button" data-portable-action="import-file">文件导入</button></div>
+  <p class="network-mode-hint">文件可通过 USB、共享文件夹或自行选择的同步工具传输。远端填写完整文件 URL，目录需已存在；建议每台设备使用不同文件名。对象存储使用同一对象的 GET / PUT 预签名 URL，预签名方式不需要 Access Key；长期自动同步可用下方 S3 原生签名。</p>
+  <label>传输方式<select id="portable-mode"><option value="webdav">WebDAV</option><option value="object">对象存储预签名 URL</option><option value="lan">局域网直连</option></select></label>
+  <label>下载 URL / WebDAV 完整文件地址<input id="portable-get-url" type="text" autocomplete="off" placeholder="https://dav.example.com/OpenBrowser/desktop.obsync"></label>
+  <label>上传 URL（留空使用下载地址）<input id="portable-put-url" type="text" autocomplete="off" placeholder="对象存储 PUT 预签名 URL"></label>
+  <div class="form-two"><label>WebDAV 用户名<input id="portable-user" autocomplete="off"></label><label>WebDAV 密码<input id="portable-remote-password" type="password" autocomplete="off"></label></div>
+  <div class="storage-actions"><button class="outline" type="button" data-portable-action="push">上传快照</button><button class="outline" type="button" data-portable-action="pull">下载导入</button></div>
+  <p class="network-mode-hint">不使用云存储：两台设备连接同一局域网，点击开启交换，把临时地址粘贴到手机的「下载 URL」。手机也可向此地址上传，再在电脑点击「导入手机快照」。仅绑定局域网地址，10 分钟自动关闭。</p>
+  <div class="storage-actions"><button class="outline" type="button" data-portable-action="start-lan">开启局域网交换</button><button class="outline" type="button" data-portable-action="receive-lan">导入手机快照</button><button class="outline" type="button" data-portable-action="stop-lan">关闭交换</button></div>
+  <p id="portable-status" class="storage-warning" aria-live="polite">尚未执行跨端同步。</p>
+  <label>局域网临时地址（请保密）<input id="portable-lan-url" type="text" readonly autocomplete="off"></label>
+  <hr>
+  <h3>自动双向同步</h3>
+  <p class="network-mode-hint">使用单独的共享同步文件，两端填写相同文件地址、空间标识和密码。已开启「云备份」且已关闭的环境参与同步；运行中的环境暂缓接收。并发修改会显示冲突，不按设备时间强行覆盖。不传播环境删除。</p>
+  <label>自动同步提供商<select id="auto-provider"><option value="webdav">WebDAV</option><option value="s3">S3 / MinIO 原生签名</option><option value="object">对象存储预签名 URL</option><option value="lan">局域网临时地址</option><option value="local">本地共享文件</option></select></label>
+  <div class="form-two"><label>空间标识<input id="auto-space" value="default" maxlength="64"></label><label>间隔（分钟）<input id="auto-interval" type="number" min="1" max="1440" value="15"></label></div>
+  <p class="network-mode-hint">远端地址、WebDAV 账号和同步密码使用本卡片上方的输入框。S3 填完整对象 URL（无预签名参数）；Region 可填 auto（如 R2）或实际地区。保存的密码留空表示保留，切换空间/地址需要重新填写。凭据仅在系统密钥库可用时加密保存。</p>
+  <div class="form-two"><label>S3 Region<input id="auto-region" value="us-east-1"></label><label>S3 Access Key<input id="auto-access-key" autocomplete="off"></label></div>
+  <div class="form-two"><label>S3 Secret Key<input id="auto-secret-key" type="password" autocomplete="off"></label><label>S3 Session Token（可选）<input id="auto-session-token" type="password" autocomplete="off"></label></div>
+  <label>本地同步文件<input id="auto-local-file" readonly></label>
+  <button class="outline" type="button" id="auto-choose-file">选择本地同步文件</button>
+  <label class="check-row"><input id="auto-enabled" type="checkbox">启用自动双向同步（软件需保持运行）</label>
+  <label class="check-row"><input id="auto-site-data" type="checkbox">同步网站 localStorage / IndexedDB（可能包含登录令牌）</label>
+  <label class="check-row"><input id="auto-credentials" type="checkbox">同步 OpenBrowser 密码库（不含 Chrome / Google 系统密码库）</label>
+  <label class="check-row"><input id="auto-accept-new" type="checkbox">自动接收空间中新环境并加入后续同步</label>
+  <p class="network-mode-hint">Cookie 使用上方单独的勾选项。网站存储和密码库勾选项也控制手动文件 / 上传 / 导入；两端都需升级新版。私网直连使用已加密包；临时局域网地址到期后需要重新开启。文件镜像工具若生成冲突副本，需保留副本再导入，不能提供网络服务端的原子条件写入。</p>
+  <div class="storage-actions"><button class="primary" type="button" data-auto-action="save">保存自动同步设置</button><button class="outline" type="button" data-auto-action="run">立即双向同步</button><button class="outline" type="button" data-auto-action="pause">暂停</button><button class="outline" type="button" data-auto-action="refresh">刷新状态</button><button class="outline" type="button" data-auto-action="forget">清除连接和同步记录</button></div>
+  <p id="auto-status" class="storage-warning" aria-live="polite">正在读取同步配置…</p>
+  <pre id="auto-conflicts" style="white-space:pre-wrap"></pre>
+  <button class="outline" type="button" data-auto-action="export-previous">导出本地上一份密文备份</button>
+  <div class="storage-actions"><button class="outline" type="button" data-auto-action="local">冲突项采用本机版本</button><button class="outline" type="button" data-auto-action="remote">冲突项采用远端版本</button></div>
+  <pre id="auto-history" style="white-space:pre-wrap"></pre>
+  <hr><h3>OpenBrowser 密码库</h3>
+  <p class="network-mode-hint">账号按环境和完整网站来源隔离，在系统密钥库中加密保存。开启上方密码库同步后参与双向合并；不会自动抓取系统密码，也不会自动提交登录。复制的密码在 30 秒后清除。</p>
+  <label>环境<select id="vault-profile"></select></label>
+  <div class="form-two"><label>网站来源<input id="vault-origin" placeholder="https://example.com" autocomplete="off"></label><label>用户名<input id="vault-username" autocomplete="off"></label></div>
+  <label>密码（同来源和用户名的已有账号留空保留）<input id="vault-password" type="password" autocomplete="new-password"></label>
+  <div class="storage-actions"><button class="outline" type="button" id="vault-save">保存账号</button><button class="outline" type="button" id="vault-platform">从此环境的平台账号导入</button><button class="outline" type="button" id="vault-refresh">刷新密码库</button></div>
+  <div id="vault-entries"></div><p id="vault-status" aria-live="polite"></p>
+</article>
 <article class="storage-settings-card" id="kernel-settings-card">
   <div class="storage-settings-head"><div><h3>独立浏览器内核</h3><p>优先使用安装包内置内核；点击下载时使用 <strong>Google Chrome Stable</strong> 正式包。平台目录：<code>kernels/macos-x64</code> · <code>kernels/windows-x64</code> · <code>kernels/macos-arm64</code> · <code>kernels/chrome-stable</code>。</p></div><span id="kernel-status-badge">检测中</span></div>
   <div class="storage-path-box"><small>内核路径</small><code id="kernel-path">—</code></div>

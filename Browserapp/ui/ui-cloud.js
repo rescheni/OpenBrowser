@@ -427,7 +427,117 @@ $('#cloud-pull-selected')?.addEventListener('click', async () => {
 });
 
 window.refreshCloudPanel = refreshCloudPanel;
+let portableBusy = false;
+document.querySelectorAll('[data-portable-action]').forEach(button => {
+  button.addEventListener('click', async () => {
+    if (portableBusy) return;
+    portableBusy = true;
+    const buttons = [...document.querySelectorAll('[data-portable-action]')];
+    buttons.forEach(b => { b.disabled = true; });
+    const status = document.getElementById('portable-status');
+    status.textContent = '正在处理…';
+    try {
+      const result = await window.ops.portableExchange({
+        action: button.dataset.portableAction,
+        mode: document.getElementById('portable-mode').value,
+        autoHost: document.getElementById('auto-enabled').checked,
+        acceptNew: document.getElementById('auto-accept-new').checked,
+        space: document.getElementById('auto-space').value.trim(),
+        password: document.getElementById('portable-password').value,
+        includeSiteData: document.getElementById('auto-site-data').checked, includeCredentials: document.getElementById('auto-credentials').checked,
+        includeCookies: document.getElementById('portable-cookies').checked,
+        replace: document.getElementById('portable-replace').checked,
+        getUrl: document.getElementById('portable-get-url').value.trim(),
+        putUrl: document.getElementById('portable-put-url').value.trim(),
+        username: document.getElementById('portable-user').value,
+        remotePassword: document.getElementById('portable-remote-password').value,
+      });
+      if (result.profiles) applyRestoredProfiles(result);
+      status.textContent = result.canceled ? '已取消。' : result.message;
+      if (result.url) document.getElementById('portable-lan-url').value = result.url;
+      if (button.dataset.portableAction === 'stop-lan') document.getElementById('portable-lan-url').value = '';
+    } catch (error) { status.textContent = '操作失败：' + error.message; }
+    finally { portableBusy = false; buttons.forEach(b => { b.disabled = false; }); }
+  });
+});
 window.CLOUD_BRIDGE_PRESETS = CLOUD_BRIDGE_PRESETS;
 window.pushProfilesToCloud = pushProfilesToCloud;
 window.pullProfilesFromCloud = pullProfilesFromCloud;
+function showAutomaticSync(result, fill = false) {
+  if (!result?.config) return;
+  const c = result.config;
+  if (fill) {
+    for (const [id, key, fallback] of [['auto-provider', 'provider', 'webdav'], ['auto-space', 'space', 'default'], ['auto-interval', 'interval', 15], ['auto-region', 'region', 'us-east-1'], ['auto-access-key', 'accessKey', ''], ['auto-local-file', 'localFile', ''], ['portable-get-url', 'getUrl', ''], ['portable-put-url', 'putUrl', ''], ['portable-user', 'username', '']]) {
+      const node = document.getElementById(id); if (node) node.value = c[key] ?? fallback;
+    }
+    document.getElementById('auto-site-data').checked = c.includeSiteData === true;
+    document.getElementById('auto-credentials').checked = c.includeCredentials === true;
+    document.getElementById('auto-enabled').checked = c.enabled === true;
+    document.getElementById('auto-accept-new').checked = c.acceptNew === true;
+    document.getElementById('portable-cookies').checked = c.includeCookies === true;
+    for (const [id, key] of [['portable-password', 'password'], ['portable-remote-password', 'remotePassword'], ['auto-secret-key', 'secretKey'], ['auto-session-token', 'sessionToken']]) {
+      const node = document.getElementById(id); node.value = ''; node.placeholder = c['has_' + key] ? '已加密保存，留空保留' : '';
+    }
+  }
+  document.getElementById('auto-status').textContent = result.error || (result.busy ? '正在同步…' : c.enabled ? '自动同步已启用' : '自动同步已暂停') + (result.secureStorage ? '' : ' · 系统密钥库不可用');
+  document.getElementById('auto-conflicts').textContent = (result.conflicts || []).map(c => `${c.name} · ${({cookies:'Cookie', siteData:'网站存储', credentials:'密码库', config:'配置'})[c.section] || c.section} 同时修改`).join('\n');
+  document.getElementById('auto-history').textContent = (result.history || []).map(h => `${new Date(h.at).toLocaleString()} · ${h.message}`).join('\n');
+}
+document.querySelectorAll('[data-auto-action]').forEach(button => button.addEventListener('click', async () => {
+  const action = button.dataset.autoAction;
+  const buttons = [...document.querySelectorAll('[data-auto-action]')]; buttons.forEach(b => { b.disabled = true; });
+  try {
+    if (['local', 'remote', 'forget'].includes(action) && !window.confirm(action === 'forget' ? '清除本机同步连接、基线和记录？不会删除环境或远端数据。' : `对当前显示的冲突项采用${action === 'local' ? '本机' : '远端'}版本？`)) return;
+    const payload = { action: ['local', 'remote'].includes(action) ? 'resolve' : action, side: action };
+    if (action === 'save') payload.config = {
+      includeSiteData: document.getElementById('auto-site-data').checked, includeCredentials: document.getElementById('auto-credentials').checked,
+      enabled: document.getElementById('auto-enabled').checked, acceptNew: document.getElementById('auto-accept-new').checked,
+      provider: document.getElementById('auto-provider').value, space: document.getElementById('auto-space').value.trim(), interval: Number(document.getElementById('auto-interval').value),
+      getUrl: document.getElementById('portable-get-url').value.trim(), putUrl: document.getElementById('portable-put-url').value.trim(),
+      username: document.getElementById('portable-user').value, remotePassword: document.getElementById('portable-remote-password').value,
+      password: document.getElementById('portable-password').value, includeCookies: document.getElementById('portable-cookies').checked,
+      region: document.getElementById('auto-region').value.trim(), accessKey: document.getElementById('auto-access-key').value.trim(), secretKey: document.getElementById('auto-secret-key').value,
+      sessionToken: document.getElementById('auto-session-token').value, localFile: document.getElementById('auto-local-file').value,
+    };
+    showAutomaticSync(await window.ops.portableAuto(payload), ['save', 'pause', 'forget'].includes(action));
+  } catch (e) { document.getElementById('auto-status').textContent = '操作失败：' + e.message; }
+  finally { buttons.forEach(b => { b.disabled = false; }); }
+}));
+document.getElementById('auto-choose-file')?.addEventListener('click', async () => {
+  try { const r = await window.ops.portableAuto({ action: 'choose-file' }); if (r.localFile) document.getElementById('auto-local-file').value = r.localFile; }
+  catch (e) { toast(e.message); }
+});
+
+async function updateVault(action = 'vault-list', entry = {}) {
+  const select = document.getElementById('vault-profile');
+  if (!select) return;
+  try {
+    const payload = {action, id:select.value, ...entry};
+    if (action === 'vault-save') Object.assign(payload, {origin:document.getElementById('vault-origin').value.trim(), username:document.getElementById('vault-username').value, password:document.getElementById('vault-password').value});
+    document.getElementById('vault-password').value = '';
+    const result = await window.ops.portableAuto(payload);
+    const oldId = select.value;
+    select.replaceChildren();
+    for (const p of result.profiles || []) { const option = document.createElement('option'); option.value = p.id; option.textContent = p.name; select.appendChild(option); }
+    if ([...select.options].some(o => o.value === oldId)) select.value = oldId;
+    if (!oldId && select.value) return updateVault();
+    const container = document.getElementById('vault-entries'); container.replaceChildren();
+    for (const c of result.entries || []) {
+      const row = document.createElement('div'); row.className = 'storage-actions';
+      const label = document.createElement('span'); label.textContent = c.origin + ' · ' + c.username; row.appendChild(label);
+      const copy = document.createElement('button'); copy.type = 'button'; copy.className = 'outline'; copy.textContent = '复制密码'; copy.onclick = () => updateVault('vault-copy', c); row.appendChild(copy);
+      const edit = document.createElement('button'); edit.type = 'button'; edit.className = 'outline'; edit.textContent = '修改'; edit.onclick = () => { document.getElementById('vault-origin').value = c.origin; document.getElementById('vault-username').value = c.username; document.getElementById('vault-password').focus(); }; row.appendChild(edit);
+      const remove = document.createElement('button'); remove.type = 'button'; remove.className = 'outline'; remove.textContent = '删除'; remove.onclick = () => { if (window.confirm('删除此账号？启用密码库同步后，删除会参与下一次合并。')) updateVault('vault-delete', c); }; row.appendChild(remove);
+      container.appendChild(row);
+    }
+    document.getElementById('vault-status').textContent = action === 'vault-copy' ? '密码已复制，30 秒后清除剪贴板。' : '密码库已更新。';
+  } catch (e) { document.getElementById('vault-status').textContent = '密码库操作失败：' + e.message; }
+}
+document.getElementById('vault-profile')?.addEventListener('change', () => updateVault());
+for (const [id, action] of [['vault-save','vault-save'],['vault-platform','vault-import-platform'],['vault-refresh','vault-list']]) document.getElementById(id)?.addEventListener('click', () => updateVault(action));
+window.ops?.portableAuto && updateVault();
+window.ops?.portableAuto?.({ action: 'get' }).then(r => showAutomaticSync(r, true)).catch(e => { const n = document.getElementById('auto-status'); if (n) n.textContent = e.message; });
+window.ops?.onEvent?.(value => {
+  if (value?.type === 'portable-sync' && value.profiles) { applyRestoredProfiles(value); window.ops.portableAuto({ action: 'get' }).then(r => showAutomaticSync(r)).catch(() => {}); }
+});
 })();

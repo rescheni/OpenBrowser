@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 浅色（日间）调色板：白底 + 冷蓝，保持与深色版同一套语义 -->
+    <color name="deck_bg">#F4F7FC</color>
+    <color name="deck_bg_glow">#E3EDFF</color>
+    <color name="deck_surface">#FFFFFF</color>
+    <color name="deck_surface_alt">#EDF2FA</color>
+    <color name="deck_line">#DFE6F1</color>
+    <color name="deck_line_strong">#C7D3E4</color>
+    <color name="deck_text">#0B1220</color>
+    <color name="deck_text_dim">#5C6B80</color>
+    <color name="deck_accent">#1F6BFF</color>
+    <color name="deck_accent_2">#0E9CFF</color>
+    <color name="deck_on_accent">#FFFFFF</color>
+    <color name="deck_good">#0F8A4C</color>
+    <color name="deck_danger">#D93A3A</color>
+    <color name="deck_accent_soft">#1A1F6BFF</color>
+    <color name="deck_accent_soft_2">#0D1F6BFF</color>
+
+    <color name="ic_launcher_background">#0B1220</color>
+</resources>

@@ -1325,6 +1325,13 @@ class BrowserEngine {
         }
       }
       if (previous && previous.proxy !== merged.proxy) this.networkInfo.delete(profile.id);
+      // Consumption state belongs to the engine. A stale/redacted renderer must
+      // not replay a Cookie import that has already been applied once.
+      if (previous?.cookieSyncManaged && value.__cookieSyncImport !== true) {
+        const explicit = value.__secretsExplicit === true || ['replace', 'clear'].includes(String(value.secretsAction || value.credentialsAction || ''));
+        merged.cookieSyncManaged = explicit ? false : previous.cookieSyncManaged;
+        merged.cookieSyncPending = explicit ? false : previous.cookieSyncPending;
+      }
       this.profiles.set(merged.id, merged);
       incomingIds.add(merged.id);
       const hasSavedAssignment = this.assignments.has(merged.id);
@@ -1666,8 +1673,9 @@ class BrowserEngine {
 
   async importProfileCookies(connection, raw) {
     if (!raw) return 0; const values = JSON.parse(raw); if (!Array.isArray(values)) throw new Error('Cookie JSON must be an array');
+    if (values.length > 10000) throw new Error('Cookie array exceeds the supported limit');
     const sameSite = (value) => ({ strict: 'Strict', lax: 'Lax', none: 'None', no_restriction: 'None', unspecified: undefined })[String(value || '').toLowerCase()];
-    const cookies = values.slice(0, 5000).map((item) => {
+    const cookies = values.map((item) => {
       if (!item || typeof item.name !== 'string' || typeof item.value !== 'string') throw new Error('Cookie entries require name and value');
       const cookie = { name: item.name, value: item.value, path: String(item.path || '/'), secure: Boolean(item.secure), httpOnly: Boolean(item.httpOnly ?? item.http_only) };
       if (item.url) cookie.url = String(item.url); else if (item.domain) cookie.domain = String(item.domain);
@@ -1685,7 +1693,7 @@ class BrowserEngine {
     try {
       const result = await connection.command('Storage.getCookies', {}, 15000);
       const list = Array.isArray(result?.cookies) ? result.cookies : [];
-      const compact = list.slice(0, 5000).map((c) => ({
+      const compact = list.filter(c => !c.partitionKey).slice(0, 5000).map((c) => ({
         name: c.name,
         value: c.value,
         domain: c.domain,
@@ -1703,6 +1711,17 @@ class BrowserEngine {
 
   async applyRuntimeSettings(port, profile, fingerprint = null, options = {}) {
     const phase = String(options.phase || 'applyRuntimeSettings');
+    if (this.websiteStateStore && this.websiteSyncOptions?.().includeSiteData && profile.advanced?.cloudBackup && profile.advanced?.saveLocalStorage && profile.advanced?.saveIndexedDB) {
+      this.websiteCaptureTimes ||= new Map();
+      this.websiteCaptureJobs ||= new Map();
+      if (!this.websiteCaptureJobs.has(profile.id) && Date.now() - (this.websiteCaptureTimes.get(profile.id) || 0) > 15000) {
+        this.websiteCaptureTimes.set(profile.id, Date.now());
+        const job = require('./automation/website-state').captureOpenPages(port, cdp).then(sites => this.websiteStateStore.capture(profile.id, sites))
+          .catch(() => this.emit({type:'sync-error', action:'website-snapshot', id:profile.id, message:'网站存储快照失败，保留上一份快照'}))
+          .finally(() => this.websiteCaptureJobs.delete(profile.id));
+        this.websiteCaptureJobs.set(profile.id, job);
+      }
+    }
     const tabs = await cdp.tabs(port);
     const network = this.networkInfo.get(profile.id) || {};
     // merge IP-detected geo/tz into profile for fingerprint apply
@@ -3806,9 +3825,13 @@ class BrowserEngine {
     startupResources.profileLock = profileLock;
     startupResources.lifecycleGeneration = lifecycleGeneration;
     this.assertStartGenerationActive(profile.id, lifecycleGeneration);
-    const restoreSession = profile.advanced.tabMode === 'restore' || profile.advanced.restoreSession;
+    const requestedRestoreSession = profile.advanced.tabMode === 'restore' || profile.advanced.restoreSession;
+    const pendingWebsite = this.websiteStateStore ? (await this.websiteStateStore.read(profile.id)).pending?.sites?.length > 0 : false;
+    if (pendingWebsite && (!profile.advanced.saveLocalStorage || !profile.advanced.saveIndexedDB)) throw new Error('请先开启 localStorage 和 IndexedDB 保存后应用同步数据');
+    const restoreSession = requestedRestoreSession && !pendingWebsite;
+    const startupProfile = pendingWebsite ? {...profile,advanced:{...profile.advanced,tabMode:'new',restoreSession:false,blockRestoreDialog:true}} : profile;
     // Parallelized (independent IO overlaps; Preferences writers stay serialized). See method.
-    await this.prepareProfileFilesForStart(root, profile, restoreSession);
+    await this.prepareProfileFilesForStart(root, startupProfile, requestedRestoreSession);
     await removeSingletonFiles(root, { attempts: 6, delayMs: 40 });
     const pageNetwork = this.networkInfo.get(profile.id) || {};
     const customStartUrls = this.resolveStartupUrls(profile);
@@ -4167,7 +4190,23 @@ class BrowserEngine {
       await this.cleanupStartupResources(startupResources);
       throw new Error(formatBrowserStartupError(error, child, diagnostic));
     }
-    if (profile.cookies && profile.advanced.saveCookies) { try { await this.importProfileCookies(connection, profile.cookies); } catch (error) { this.emit({ type: 'sync-error', action: 'import-cookies', id: profile.id, message: 'Cookie 导入失败：' + error.message }); } }
+    if (this.websiteStateStore) {
+      try { await require('./automation/website-state').restorePending(port, this.websiteStateStore, profile.id); }
+      catch (_) { await this.cleanupStartupResources(startupResources); throw new Error('同步网站存储应用失败，已停止启动；待应用快照已保留'); }
+    }
+    if (profile.cookies && profile.advanced.saveCookies && (!profile.cookieSyncManaged || profile.cookieSyncPending)) {
+      try {
+        await this.importProfileCookies(connection, profile.cookies);
+        if (profile.cookieSyncManaged) {
+          const stored = this.profiles.get(profile.id);
+          if (stored && stored.cookies === profile.cookies) { stored.cookieSyncPending = false; await this.persist(); }
+          profile.cookieSyncPending = false;
+        }
+      } catch (error) {
+        this.emit({ type: 'sync-error', action: 'import-cookies', id: profile.id, message: 'Cookie 导入失败：' + error.message });
+        if (profile.cookieSyncManaged) { await this.cleanupStartupResources(startupResources); throw new Error('同步 Cookie 应用失败，已停止启动环境'); }
+      }
+    }
     let reconciled;
     try {
       const managedPaths = [...this.extensions.values()].map((item) => item.path).filter(Boolean);
@@ -4635,6 +4674,14 @@ class BrowserEngine {
     item.workerFingerprintConnection?.close();
     item.workerFingerprintConnection = null;
     const profile = this.profiles.get(safe) || item.profile || {};
+    await this.websiteCaptureJobs?.get(safe);
+    if (this.websiteStateStore && this.websiteSyncOptions?.().includeSiteData && profile.advanced?.cloudBackup) {
+      try {
+        if (!profile.advanced.saveLocalStorage || !profile.advanced.saveIndexedDB) throw new Error('请先开启环境的 localStorage 和 IndexedDB 保存');
+        const sites = await require('./automation/website-state').captureOpenPages(item.port, cdp);
+        await this.websiteStateStore.capture(safe, sites);
+      } catch (_) { this.emit({type:'sync-error', action:'website-snapshot', id:safe, message:'网站存储快照失败，保留上一份快照；请重新打开网站后重试'}); }
+    }
     // Snapshot cookies before close when this env opts into cloud backup (close-time Cookie sync)
     let cookieExport = '';
     const wantCookieSnap = profile.advanced?.cloudBackup && profile.advanced?.syncCookiesOnClose !== false;
@@ -4768,6 +4815,7 @@ class BrowserEngine {
           if (lastError) throw lastError;
         }
       }
+      if (deleteData && this.websiteStateStore) await this.websiteStateStore.clear(id);
       // Commit in-memory deletion only after the profile directory is gone.
       // Persist each successful item so a later batch failure cannot leave the
       // durable profile list disagreeing with already-deleted directories.

@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <style name="Theme.OpenBrowser.Base" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/deck_accent</item>
+        <item name="colorOnPrimary">@color/deck_on_accent</item>
+        <item name="colorPrimaryContainer">@color/deck_accent_soft</item>
+        <item name="colorOnPrimaryContainer">@color/deck_text</item>
+        <item name="colorSecondary">@color/deck_accent_2</item>
+        <item name="colorOnSecondary">@color/deck_on_accent</item>
+        <item name="colorSecondaryContainer">@color/deck_accent_soft</item>
+        <item name="colorOnSecondaryContainer">@color/deck_text</item>
+        <item name="colorTertiary">@color/deck_good</item>
+        <item name="colorSurface">@color/deck_surface</item>
+        <item name="colorOnSurface">@color/deck_text</item>
+        <item name="colorSurfaceVariant">@color/deck_surface_alt</item>
+        <item name="colorOnSurfaceVariant">@color/deck_text_dim</item>
+        <item name="colorSurfaceContainer">@color/deck_surface_alt</item>
+        <item name="colorSurfaceContainerLow">@color/deck_surface</item>
+        <item name="colorSurfaceContainerHigh">@color/deck_surface_alt</item>
+        <item name="colorOutline">@color/deck_line_strong</item>
+        <item name="colorOutlineVariant">@color/deck_line</item>
+        <item name="colorControlHighlight">@color/deck_accent_soft_2</item>
+        <item name="colorError">@color/deck_danger</item>
+        <item name="android:colorBackground">@color/deck_bg</item>
+        <item name="android:windowBackground">@drawable/bg_app</item>
+        <item name="android:navigationBarColor">@color/deck_bg</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>
+        <item name="android:windowAnimationStyle">@style/Animation.OpenBrowser.Activity</item>
+    </style>
+
+    <style name="Theme.OpenBrowser" parent="Theme.OpenBrowser.Base">
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowLightNavigationBar">true</item>
+    </style>
+
+    <style name="Animation.OpenBrowser.Activity" parent="@android:style/Animation.Activity">
+        <item name="android:activityOpenEnterAnimation">@anim/slide_in_right</item>
+        <item name="android:activityOpenExitAnimation">@anim/fade_out_slight</item>
+        <item name="android:activityCloseEnterAnimation">@anim/fade_in_slight</item>
+        <item name="android:activityCloseExitAnimation">@anim/slide_out_right</item>
+    </style>
+</resources>
