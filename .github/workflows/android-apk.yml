@@ -53,27 +53,23 @@ jobs:
           CHOICE: ${{ inputs.abi }}
         run: |
           set -euo pipefail
-          python3 - <<'PY' >> "$GITHUB_OUTPUT"
-          import json, os
-          choice = (os.environ.get("CHOICE") or "all").strip()
-          items = [
-              {"arch": "arm64", "label": "arm64-v8a", "abi": "arm64-v8a"},
-              {"arch": "armv7", "label": "armeabi-v7a", "abi": "armeabi-v7a"},
-              {"arch": "x86_64", "label": "x86_64", "abi": "x86_64"},
-              {
-                  "arch": "universal",
-                  "label": "universal (arm64-v8a + armeabi-v7a + x86_64)",
-                  "abi": "arm64-v8a,armeabi-v7a,x86_64",
-              },
-          ]
-          if choice == "all":
-              selected = items
-          elif choice == "universal":
-              selected = [item for item in items if item["arch"] == "universal"]
-          else:
-              selected = [item for item in items if item["abi"] == choice]
-          print("matrix=" + json.dumps({"include": selected}))
-          PY
+          choice="${CHOICE:-all}"
+          items=(
+            '{"arch":"arm64","label":"arm64-v8a","abi":"arm64-v8a"}'
+            '{"arch":"armv7","label":"armeabi-v7a","abi":"armeabi-v7a"}'
+            '{"arch":"x86_64","label":"x86_64","abi":"x86_64"}'
+            '{"arch":"universal","label":"universal (arm64-v8a + armeabi-v7a + x86_64)","abi":"arm64-v8a,armeabi-v7a,x86_64"}'
+          )
+          case "$choice" in
+            all) selected=("${items[@]}") ;;
+            universal) selected=("${items[3]}") ;;
+            arm64-v8a) selected=("${items[0]}") ;;
+            armeabi-v7a) selected=("${items[1]}") ;;
+            x86_64) selected=("${items[2]}") ;;
+            *) echo "Unknown ABI: $choice" >&2; exit 1 ;;
+          esac
+          joined="$(printf '%s,' "${selected[@]}")"
+          printf 'matrix={"include":[%s]}\n' "${joined%,}" >> "$GITHUB_OUTPUT"
 
   verify:
     name: Unit tests and lint
