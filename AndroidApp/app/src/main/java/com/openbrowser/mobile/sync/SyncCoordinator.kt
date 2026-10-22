@@ -193,7 +193,7 @@ private class SyncProvider(private val context: Context, private val config: JSO
     }
     private fun <T> accessLocal(block: (FileInputStream, FileOutputStream) -> T): T {
         val descriptor = context.contentResolver.openFileDescriptor(Uri.parse(config.getString("localUri")), "rw") ?: error("本地文件权限不可用")
-        descriptor.use {
+        return descriptor.use {
             val input = FileInputStream(it.fileDescriptor); val output = FileOutputStream(it.fileDescriptor)
             try { output.channel.lock().use { block(input, output) } }
             finally { runCatching { input.close() }; runCatching { output.close() } }

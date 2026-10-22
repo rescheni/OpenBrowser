@@ -889,15 +889,14 @@ class GeckoBrowserActivity : AppCompatActivity() {
             .setPositiveButton(R.string.action_confirm) { _, _ ->
                 val target = profile.id
                 runCatching {
+                    // GeckoView 128 的 clearDataForSessionContext 是同步 void，不能继续链式回调
                     runtimeInstance(this).storageController
                         .clearDataForSessionContext(profile.dataSuffix)
-                        .accept({
-                            runCatching { com.openbrowser.mobile.sync.CookieSnapshots(this).clear(target) }
-                            if (!isDestroyed && !isFinishing && profile.id == target) {
-                                tabs.forEach { it.session.reload() }
-                                toast(getString(R.string.clear_data_done, profile.name))
-                            }
-                        }, { if (!isDestroyed && !isFinishing) toast(getString(R.string.operation_failed)) })
+                    runCatching { com.openbrowser.mobile.sync.CookieSnapshots(this).clear(target) }
+                    if (!isDestroyed && !isFinishing && profile.id == target) {
+                        tabs.forEach { it.session.reload() }
+                        toast(getString(R.string.clear_data_done, profile.name))
+                    }
                 }.onFailure { toast(getString(R.string.operation_failed)) }
             }
             .show()

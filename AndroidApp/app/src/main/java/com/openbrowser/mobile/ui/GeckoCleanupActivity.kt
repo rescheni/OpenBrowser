@@ -2,7 +2,6 @@ package com.openbrowser.mobile.ui
 
 import android.app.Activity
 import android.os.Bundle
-import org.mozilla.geckoview.GeckoResult
 
 /** 无界面清理入口，运行在 :gecko 进程中。 */
 class GeckoCleanupActivity : Activity() {
@@ -25,14 +24,15 @@ class GeckoCleanupActivity : Activity() {
             val acquired = lease ?: return@Thread
             android.os.Handler(android.os.Looper.getMainLooper()).post {
                 runCatching {
-                    GeckoRuntimeHolder.get(app).storageController.clearDataForSessionContext(contextId).accept({
-                        runCatching { com.openbrowser.mobile.web.GeckoDataCleanup.pending(app, profileId).delete() }
-                        acquired.close()
-                    }, {
-                        acquired.close()
-                        android.util.Log.w("GeckoCleanup", "Context cleanup failed; pending marker retained")
-                    })
-                }.onFailure { acquired.close() }
+                    // GeckoView 128 的 clearDataForSessionContext 是同步 void
+                    GeckoRuntimeHolder.get(app).storageController
+                        .clearDataForSessionContext(contextId)
+                    runCatching { com.openbrowser.mobile.web.GeckoDataCleanup.pending(app, profileId).delete() }
+                    acquired.close()
+                }.onFailure {
+                    acquired.close()
+                    android.util.Log.w("GeckoCleanup", "Context cleanup failed; pending marker retained")
+                }
             }
         }.start()
         // NoDisplay Activity 必须在 onCreate 完成时退出；原生结果持有租约直至真正完成。

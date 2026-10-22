@@ -1,8 +1,34 @@
 name: Build OpenBrowser Android APK
 
+# 每个 ABI 单独出一个 APK，避免 GeckoView 的三种引擎库同时进包。
+# - arm64-v8a   : 现代手机（推荐）
+# - armeabi-v7a : 32 位老设备
+# - x86_64      : 模拟器 / x86 平板
+# - universal   : 三种 ABI 合一的安装包（体积最大，兼容性最好）
 on:
   workflow_dispatch:
+    inputs:
+      abi:
+        description: 'Target ABI'
+        required: false
+        type: choice
+        default: all
+        options:
+          - all
+          - arm64-v8a
+          - armeabi-v7a
+          - x86_64
+          - universal
+      release_tag:
+        description: 'Optional release tag to attach the APKs to (for example v1.0.27)'
+        required: false
   push:
+    branches: [main]
+    tags: ['v*']
+    paths:
+      - 'AndroidApp/**'
+      - '.github/workflows/android-apk.yml'
+  pull_request:
     paths:
       - 'AndroidApp/**'
       - '.github/workflows/android-apk.yml'
@@ -10,10 +36,49 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: openbrowser-android-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  android-debug-apk:
-    name: Android debug APK
+  setup:
+    name: Resolve ABI matrix
     runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.matrix.outputs.matrix }}
+    steps:
+      - id: matrix
+        shell: bash
+        env:
+          CHOICE: ${{ inputs.abi }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY' >> "$GITHUB_OUTPUT"
+          import json, os
+          choice = (os.environ.get("CHOICE") or "all").strip()
+          items = [
+              {"arch": "arm64", "label": "arm64-v8a", "abi": "arm64-v8a"},
+              {"arch": "armv7", "label": "armeabi-v7a", "abi": "armeabi-v7a"},
+              {"arch": "x86_64", "label": "x86_64", "abi": "x86_64"},
+              {
+                  "arch": "universal",
+                  "label": "universal (arm64-v8a + armeabi-v7a + x86_64)",
+                  "abi": "arm64-v8a,armeabi-v7a,x86_64",
+              },
+          ]
+          if choice == "all":
+              selected = items
+          elif choice == "universal":
+              selected = [item for item in items if item["arch"] == "universal"]
+          else:
+              selected = [item for item in items if item["abi"] == choice]
+          print("matrix=" + json.dumps({"include": selected}))
+          PY
+
+  verify:
+    name: Unit tests and lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
     defaults:
       run:
         working-directory: AndroidApp
@@ -24,6 +89,7 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
+          cache: gradle
 
       - uses: android-actions/setup-android@v3
 
@@ -32,14 +98,92 @@ jobs:
           yes | sdkmanager --licenses > /dev/null || true
           sdkmanager "platform-tools" "platforms;android-34" "build-tools;34.0.0"
 
-      - name: Build debug APK
+      - name: Assemble, test and lint
         run: |
           chmod +x gradlew
           ./gradlew --no-daemon assembleDebug testDebugUnitTest lintDebug
 
-      - name: Upload APK
+  apk:
+    name: APK ${{ matrix.label }}
+    needs: [setup, verify]
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    concurrency:
+      group: openbrowser-android-${{ github.ref }}-${{ matrix.arch }}
+      cancel-in-progress: true
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.setup.outputs.matrix) }}
+    defaults:
+      run:
+        working-directory: AndroidApp
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: gradle
+
+      - uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK packages
+        run: |
+          yes | sdkmanager --licenses > /dev/null || true
+          sdkmanager "platform-tools" "platforms;android-34" "build-tools;34.0.0"
+
+      - name: Build ${{ matrix.label }}
+        run: |
+          chmod +x gradlew
+          ./gradlew --no-daemon assembleDebug -Popenbrowser.abi="${{ matrix.abi }}"
+
+      - name: Collect APK
+        run: |
+          set -euo pipefail
+          version="$(sed -n 's/.*versionName = "\([^"]*\)".*/\1/p' app/build.gradle.kts | head -n1)"
+          mkdir -p dist
+          cp app/build/outputs/apk/debug/app-debug.apk \
+            "dist/openbrowser-mobile-${version}-${{ matrix.arch }}-debug.apk"
+          ls -lh dist
+
+      - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: openbrowser-mobile-debug-apk
-          path: AndroidApp/app/build/outputs/apk/debug/app-debug.apk
+          name: openbrowser-mobile-${{ matrix.arch }}-debug
+          path: AndroidApp/dist/*.apk
           if-no-files-found: error
+          retention-days: 30
+
+  attach:
+    name: Attach APKs to GitHub Release
+    needs: apk
+    if: inputs.release_tag != ''
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download APKs
+        uses: actions/download-artifact@v4
+        with:
+          pattern: openbrowser-mobile-*-debug
+          merge-multiple: true
+          path: dist
+
+      - name: Upload to release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ inputs.release_tag }}
+        run: |
+          set -euo pipefail
+          ls -lh dist
+          if gh release view "$TAG" --repo "$GH_REPO" >/dev/null 2>&1; then
+            gh release upload "$TAG" dist/*.apk --repo "$GH_REPO" --clobber
+          else
+            gh release create "$TAG" --repo "$GH_REPO" --draft \
+              --title "OpenBrowser $TAG" \
+              --notes "Android APKs (arm64-v8a, armeabi-v7a, x86_64 and universal)." \
+              dist/*.apk
+          fi

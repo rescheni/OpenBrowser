@@ -128,7 +128,9 @@ cd AndroidApp
 # 方式二：命令行
 export JAVA_HOME=/path/to/jdk17          # Windows: set JAVA_HOME=...
 export ANDROID_HOME=/path/to/android-sdk
-./gradlew assembleDebug                  # 产物：app/build/outputs/apk/debug/
+./gradlew assembleDebug                  # 产物：app/build/outputs/apk/debug/（默认 arm64-v8a）
+./gradlew assembleDebug -Popenbrowser.abi=armeabi-v7a
+./gradlew assembleDebug -Popenbrowser.abi=arm64-v8a,armeabi-v7a,x86_64   # universal
 ./gradlew assembleRelease                # 未签名 release 包
 ```
 
@@ -145,6 +147,29 @@ powershell -ExecutionPolicy Bypass -File .\build-install.ps1
 `%LOCALAPPDATA%\Temp\opencode\android-build` 的工具链。手机需开启 USB 调试并授权此电脑。
 检查失败会停止安装；使用 `adb install -r` 保留已有数据，不会卸载应用或自动降级。
 若签名不一致，需先确认原安装包的签名和备份方式，脚本不会清空原应用来绕过错误。
+
+## CI/CD 构建矩阵
+
+桌面端与手机端分开构建，产物按操作系统和 CPU 架构命名，避免把不同架构的引擎库打进同一个包。
+
+| 平台 | 架构 | 工作流 | 产物 |
+| --- | --- | --- | --- |
+| Windows | x86_64（amd64） | `build-installers.yml` | `OpenBrowser-Windows-x86_64-with-kernel.exe` / `.zip` |
+| macOS | x86_64（Intel） | `build-installers.yml` | `OpenBrowser-macOS-x86_64.dmg` |
+| macOS | arm64（Apple Silicon） | `build-installers.yml` | `OpenBrowser-macOS-arm64-with-kernel.dmg` |
+| Linux | x86_64 | `build-installers.yml` | `OpenBrowser-Linux-x86_64-with-kernel.tar.gz` |
+| Android | arm64-v8a | `android-apk.yml` | `openbrowser-mobile-<版本>-arm64-debug.apk` |
+| Android | armeabi-v7a | `android-apk.yml` | `openbrowser-mobile-<版本>-armv7-debug.apk` |
+| Android | x86_64 | `android-apk.yml` | `openbrowser-mobile-<版本>-x86_64-debug.apk` |
+| Android | universal | `android-apk.yml` | `openbrowser-mobile-<版本>-universal-debug.apk` |
+
+- 手机端由 `android-apk.yml` 自动触发：`AndroidApp/**` 变更、推送 `main`、推送 `v*` 标签或提交 PR。
+  也可以手动触发并只选择某一个 ABI；每个 APK 作为独立 artifact 上传，保留 30 天。
+- 手动触发时填写 `release_tag`，构建完成后会把 4 个 APK 附加到对应 GitHub Release（不存在时创建 draft）。
+- 桌面安装包由 `build-installers.yml` 手动触发，需要填写与 `Browserapp/package.json` 版本一致的 tag；
+  四个平台各自上传产物，最后统一发布 Release。
+- Windows arm64 暂不提供安装包：桌面端只内置 `windows-x64` 内核，仓库里也没有 Windows on ARM 的 Chromium 内核种子。
+  手机端的 arm64 指 Android arm64-v8a，和 Windows/macOS 的 arm64 是不同产物。
 
 ### 1.5.1 稳定性修订
 

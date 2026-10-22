@@ -3,6 +3,17 @@ plugins {
     id("org.jetbrains.kotlin.android")
 }
 
+/**
+ * 目标 ABI 列表。默认只打 arm64-v8a；CI 通过
+ * `-Popenbrowser.abi=arm64-v8a,armeabi-v7a,x86_64` 逐个或一次性打多个架构。
+ */
+val openBrowserAbis: List<String> =
+    (providers.gradleProperty("openbrowser.abi").orNull ?: "arm64-v8a")
+        .split(',')
+        .map { it.trim() }
+        .filter { it.isNotEmpty() }
+        .ifEmpty { listOf("arm64-v8a") }
+
 android {
     namespace = "com.openbrowser.mobile"
     compileSdk = 34
@@ -15,9 +26,11 @@ android {
         versionName = "1.8.0"
         resourceConfigurations += listOf("zh", "en")
 
-        // GeckoView 的引擎库覆盖全部 ABI，只保留手机常用的 arm64，避免 APK 膨胀到数百 MB
+        // GeckoView 的引擎库覆盖 arm64-v8a / armeabi-v7a / x86_64，
+        // 逐个 ABI 出包可以避免把三种引擎都塞进同一个 APK（APK 会膨胀到数百 MB）。
+        // CI 用 -Popenbrowser.abi=... 选择目标架构，本地默认仍然只出 arm64。
         ndk {
-            abiFilters += listOf("arm64-v8a")
+            abiFilters += openBrowserAbis
         }
     }
 
